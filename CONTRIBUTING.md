@@ -1,6 +1,5 @@
 # Contributing to Mini Search Engine
 
-Thanks for contributing to the **Mini Search Engine**.
 
 This project has three worklets, with four members in each team. During development, each team works in its own folder. Once all three worklets are complete, we will use an integration branch to bring everything together.
 
@@ -105,3 +104,76 @@ The final integration will reach `main` through a Pull Request.
 - Do not commit secrets or unnecessary generated files.
 
 **Simple rule:** Work in your worklet → test → open a PR → review → merge → integrate later.
+
+
+## Starting the project
+
+### 1. Clone the Repository.
+```bash
+git clone https://github.com/BhaveshGadling77/Mini-Search-Engine.git
+cd Mini-Search-Engine
+```
+
+### 2. Fetch all branches
+```bash
+git fetch --all
+```
+
+### 3. Go to the worklet branch
+For WL1:
+```bash
+git checkout wl1
+git pull origin wl1
+```
+For WL2:
+```bash
+git checkout wl2
+git pull origin wl2
+```
+For WL3:
+```bash
+git checkout wl3
+git pull origin wl3
+```
+
+### 4. Create your personal development branch
+
+for example, my username is bhavesh and from Wl2
+Wl2:
+```bash
+git checkout -b wl2-dev-bhavesh
+```
+accordingly you can create your own branch w.r.t your worklet.
+
+### 5. Push your branch to Github
+
+```bash
+git push -u origin wl2-dev-bhavesh
+```
+
+Replace the branch name according to your worklet.
+After that, your normal workflow is simply:
+
+```bash
+git add .
+git commit -m "Describe your changes"
+git push
+```
+
+Then create a PR if you want to:
+```bash
+wl2-dev-bhavesh -> wl2
+```
+according to **your branch**.
+
+
+Also if possible maintain the commit message convention:
+Commit should be like this:
+```text
+fix: Describe in short
+chore: Describe in short
+feat: Describe in short
+rem: Describe what removed
+docs: describe
+so on ...
+```
