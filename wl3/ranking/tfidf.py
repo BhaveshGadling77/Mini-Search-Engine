@@ -92,7 +92,10 @@ class TFIDFScorer:
             if tf <= 0 or df <= 0:
                 continue
 
-            idf = math.log10(total_docs / df)
+            # Guard against df > total_docs (invalid/stale W2 data).
+            # log10(N/df) is negative when df > N; clamp to 0 so that
+            # corrupted index data never produces a negative score.
+            idf = max(0.0, math.log10(total_docs / df))
             score += tf * idf
 
         return score

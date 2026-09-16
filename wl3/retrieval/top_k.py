@@ -36,6 +36,7 @@ Integration with Person 4 (QueryEngine):
 from __future__ import annotations
 
 import heapq
+import math
 from dataclasses import dataclass
 
 
@@ -107,13 +108,25 @@ class TopKRetriever:
         if k <= 0 or not scored_documents:
             return []
 
+        # Filter out NaN scores — heapq comparisons with NaN are undefined
+        # (NaN comparisons always return False, silently corrupting heap order).
+        # A NaN score indicates a scoring error upstream; exclude those docs.
+        clean = {
+            doc_id: score
+            for doc_id, score in scored_documents.items()
+            if not (isinstance(score, float) and math.isnan(score))
+        }
+
+        if not clean:
+            return []
+
         # heapq.nlargest is O(N log K) via an internal min-heap of size K.
         # Key: primary sort by score (descending), tiebreak by doc_id (ascending).
         # We negate score so nlargest → highest score first;
         # we use -doc_id so that for equal scores, lower doc_id wins.
         top_items = heapq.nlargest(
             k,
-            scored_documents.items(),
+            clean.items(),
             key=lambda item: (item[1], -item[0]),
         )
 

@@ -153,7 +153,9 @@ class VectorScorer:
         for term, tf in terms.items():
             df = doc_freq.get(term, 0)
             if tf > 0 and df > 0:
-                idf = math.log10(total_docs / df)
+                # Clamp to 0: if df > total_docs (invalid W2 data), IDF would
+                # be negative, which would invert the direction of the vector.
+                idf = max(0.0, math.log10(total_docs / df))
                 weight = tf * idf
                 if weight != 0.0:
                     vec[term] = weight

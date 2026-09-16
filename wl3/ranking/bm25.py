@@ -134,10 +134,11 @@ class BM25Scorer:
             if tf <= 0 or df <= 0:
                 continue
 
-            # BM25 IDF — Robertson-Sparck Jones variant (+1 avoids negatives)
-            idf = math.log10(
+            # BM25 IDF — Robertson-Sparck Jones variant (+1 avoids negatives
+            # for moderate df; clamp to 0 as a safety net for df > total_docs).
+            idf = max(0.0, math.log10(
                 (total_docs - df + 0.5) / (df + 0.5) + 1
-            )
+            ))
 
             # Length-normalised TF component
             numerator = tf * (self.k1 + 1)
