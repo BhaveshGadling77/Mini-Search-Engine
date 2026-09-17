@@ -21,6 +21,13 @@ from wl3.ranking.bm25 import BM25Scorer
 from wl3.ranking.vector import VectorScorer
 from wl3.ranking.ranker import Ranker, RankingMode
 from wl3.retrieval.top_k import TopKRetriever, ScoredDocument
+from wl3.engine.models import RankedResult
+from wl3.evaluation.metrics import (
+    precision_at_k, recall_at_k, reciprocal_rank,
+    mean_reciprocal_rank, average_precision,
+    evaluate_ranking, aggregate_metrics,
+)
+from wl3.evaluation.dataset import get_queries, get_query_by_text
 
 
 def approx(a, b, rel=1e-4, abs_=1e-9):
@@ -418,6 +425,153 @@ class TestIntegration(unittest.TestCase):
 # ===========================================================================
 # Main runner
 # ===========================================================================
+# Evaluation Metrics Tests (inlined from tests/wl3/test_evaluation.py)
+# ===========================================================================
+
+RETRIEVED_REF = [7, 0, 4, 1, 12, 23, 5, 8, 3, 2]
+RELEVANT_REF = {0, 4, 7, 12, 23}
+
+
+class TestPrecisionAtK(unittest.TestCase):
+    def test_p5(self): self.assertAlmostEqual(precision_at_k(RETRIEVED_REF, RELEVANT_REF, 5), 0.8, places=6)
+    def test_p10(self): self.assertAlmostEqual(precision_at_k(RETRIEVED_REF, RELEVANT_REF, 10), 0.5, places=6)
+    def test_p1_hit(self): self.assertAlmostEqual(precision_at_k(RETRIEVED_REF, RELEVANT_REF, 1), 1.0, places=6)
+    def test_k_zero(self): self.assertEqual(precision_at_k(RETRIEVED_REF, RELEVANT_REF, 0), 0.0)
+    def test_k_negative(self): self.assertEqual(precision_at_k(RETRIEVED_REF, RELEVANT_REF, -1), 0.0)
+    def test_empty_retrieved(self): self.assertEqual(precision_at_k([], RELEVANT_REF, 5), 0.0)
+    def test_empty_relevant(self): self.assertEqual(precision_at_k(RETRIEVED_REF, set(), 5), 0.0)
+    def test_perfect(self):
+        r = list(RELEVANT_REF)
+        self.assertAlmostEqual(precision_at_k(r, RELEVANT_REF, 5), 1.0, places=6)
+
+
+class TestRecallAtK(unittest.TestCase):
+    def test_r5(self): self.assertAlmostEqual(recall_at_k(RETRIEVED_REF, RELEVANT_REF, 5), 0.8, places=6)
+    def test_r10(self): self.assertAlmostEqual(recall_at_k(RETRIEVED_REF, RELEVANT_REF, 10), 1.0, places=6)
+    def test_zero(self): self.assertAlmostEqual(recall_at_k([99, 98], RELEVANT_REF, 2), 0.0, places=6)
+    def test_k_zero(self): self.assertEqual(recall_at_k(RETRIEVED_REF, RELEVANT_REF, 0), 0.0)
+    def test_empty_relevant(self): self.assertEqual(recall_at_k(RETRIEVED_REF, set(), 5), 0.0)
+
+
+class TestReciprocalRank(unittest.TestCase):
+    def test_first_relevant(self): self.assertAlmostEqual(reciprocal_rank(RETRIEVED_REF, RELEVANT_REF), 1.0, places=6)
+    def test_second_relevant(self): self.assertAlmostEqual(reciprocal_rank([99, 0, 4], RELEVANT_REF), 0.5, places=6)
+    def test_no_relevant(self): self.assertAlmostEqual(reciprocal_rank([99, 98, 97], RELEVANT_REF), 0.0, places=6)
+    def test_empty(self): self.assertAlmostEqual(reciprocal_rank([], RELEVANT_REF), 0.0, places=6)
+
+
+class TestMRR(unittest.TestCase):
+    def test_basic(self):
+        rl = [[7, 99], [99, 0], [99, 98, 4]]
+        relevant_l = [{7}, {0}, {4}]
+        expected = (1.0 + 0.5 + 1/3) / 3
+        self.assertAlmostEqual(mean_reciprocal_rank(rl, relevant_l), expected, places=5)
+    def test_empty(self): self.assertEqual(mean_reciprocal_rank([], []), 0.0)
+
+
+class TestAveragePrecision(unittest.TestCase):
+    def test_hand_calc(self):
+        expected = (1.0 + 1.0 + 1.0 + 0.8 + 5/6) / 5
+        self.assertAlmostEqual(average_precision(RETRIEVED_REF, RELEVANT_REF), expected, places=5)
+    def test_no_relevant(self): self.assertAlmostEqual(average_precision(RETRIEVED_REF, set()), 0.0, places=6)
+    def test_empty_retrieved(self): self.assertAlmostEqual(average_precision([], RELEVANT_REF), 0.0, places=6)
+
+
+class TestEvaluateRanking(unittest.TestCase):
+    def test_returns_keys(self):
+        r = evaluate_ranking(RETRIEVED_REF, RELEVANT_REF, ks=[5, 10])
+        for k in ["precision@5", "recall@5", "precision@10", "recall@10", "rr", "ap"]:
+            self.assertIn(k, r)
+    def test_values_in_range(self):
+        r = evaluate_ranking(RETRIEVED_REF, RELEVANT_REF)
+        for v in r.values():
+            self.assertGreaterEqual(v, 0.0)
+            self.assertLessEqual(v, 1.0)
+    def test_empty_retrieved(self):
+        r = evaluate_ranking([], RELEVANT_REF)
+        for v in r.values(): self.assertAlmostEqual(v, 0.0, places=9)
+
+
+class TestAggregateMetrics(unittest.TestCase):
+    def test_mean(self):
+        r1 = {"precision@5": 0.8, "rr": 1.0}
+        r2 = {"precision@5": 0.4, "rr": 0.5}
+        agg = aggregate_metrics([r1, r2])
+        self.assertAlmostEqual(agg["precision@5"], 0.6, places=6)
+        self.assertAlmostEqual(agg["mrr"], 0.75, places=6)
+    def test_empty(self): self.assertEqual(aggregate_metrics([]), {})
+
+
+class TestDataset(unittest.TestCase):
+    def test_at_least_30(self): self.assertGreaterEqual(len(get_queries()), 30)
+    def test_required_keys(self):
+        for e in get_queries():
+            self.assertIn("query", e)
+            self.assertIn("relevant_docs", e)
+    def test_lookup(self): self.assertIsNotNone(get_query_by_text("machine learning"))
+    def test_not_found(self): self.assertIsNone(get_query_by_text("xyzzy not a real query"))
+    def test_no_duplicates(self):
+        qs = [e["query"].lower() for e in get_queries()]
+        self.assertEqual(len(qs), len(set(qs)))
+
+
+# ===========================================================================
+# RankedResult Model Tests
+# ===========================================================================
+
+class TestRankedResult(unittest.TestCase):
+    def test_basic_creation(self):
+        r = RankedResult(doc_id=5, score=3.14, title="Test", url="http://x", snippet="...", rank=1)
+        self.assertEqual(r.doc_id, 5)
+        self.assertAlmostEqual(r.score, 3.14)
+
+    def test_defaults(self):
+        r = RankedResult(doc_id=0, score=1.0)
+        self.assertEqual(r.title, "")
+        self.assertEqual(r.url, "")
+        self.assertEqual(r.rank, 0)
+
+    def test_to_dict(self):
+        r = RankedResult(doc_id=3, score=2.5, title="ML", url="http://ml", snippet="test", rank=2)
+        d = r.to_dict()
+        self.assertEqual(d["doc_id"], 3)
+        self.assertEqual(d["rank"], 2)
+        self.assertIn("score", d)
+        self.assertIn("title", d)
+
+    def test_score_document_tfidf(self):
+        """score_document() alias works for TFIDF."""
+        ranker = Ranker()
+        s = ranker.score_document(
+            ranking_mode=RankingMode.TFIDF,
+            doc_id=0,
+            doc_tf={"ml": 3},
+            doc_freq={"ml": 2},
+            total_docs=10,
+            query_terms=["ml"],
+        )
+        self.assertGreater(s, 0.0)
+        self.assertIsInstance(s, float)
+
+    def test_score_document_bm25(self):
+        """score_document() alias works for BM25."""
+        ranker = Ranker()
+        s = ranker.score_document(
+            ranking_mode=RankingMode.BM25,
+            doc_id=0,
+            doc_tf={"ml": 3},
+            doc_freq={"ml": 2},
+            total_docs=10,
+            query_terms=["ml"],
+            avg_doc_length=40.0,
+            doc_length=20,
+        )
+        self.assertGreater(s, 0.0)
+
+
+# ===========================================================================
+# Entry point
+# ===========================================================================
 
 if __name__ == "__main__":
     loader = unittest.TestLoader()
@@ -430,6 +584,16 @@ if __name__ == "__main__":
         TestRanker,
         TestTopKRetriever,
         TestIntegration,
+        # Evaluation & model tests
+        TestPrecisionAtK,
+        TestRecallAtK,
+        TestReciprocalRank,
+        TestMRR,
+        TestAveragePrecision,
+        TestEvaluateRanking,
+        TestAggregateMetrics,
+        TestDataset,
+        TestRankedResult,
     ]
 
     for cls in test_classes:

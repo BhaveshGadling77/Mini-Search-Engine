@@ -237,3 +237,70 @@ class Ranker:
                 total_docs=total_docs,
             )
         return scores
+
+    # ------------------------------------------------------------------
+    # Convenience alias — single-document scoring
+    # ------------------------------------------------------------------
+
+    def score_document(
+        self,
+        ranking_mode: RankingMode,
+        doc_id: int,
+        doc_tf: dict[str, int],
+        doc_freq: dict[str, int],
+        total_docs: int,
+        query_terms: list[str],
+        *,
+        avg_doc_length: float = 0.0,
+        doc_length: int = 0,
+        doc_terms_full: dict[str, int] | None = None,
+    ) -> float:
+        """
+        Score a single document under the given ranking mode.
+
+        This is a convenience wrapper around rank() for cases where only
+        one candidate needs scoring (e.g., re-scoring after Rocchio boost).
+        QueryEngine should call rank() for batch scoring; this method is
+        useful for debugging, evaluation spot-checks, and unit tests.
+
+        Parameters
+        ----------
+        ranking_mode : RankingMode
+            TFIDF, BM25, or VECTOR.
+        doc_id : int
+            The document to score.
+        doc_tf : dict[str, int]
+            Term frequencies for this document (query terms only).
+        doc_freq : dict[str, int]
+            Corpus-level document frequency per term.
+        total_docs : int
+            Total number of documents in the corpus.
+        query_terms : list[str]
+            Parsed query terms.
+        avg_doc_length : float, keyword-only
+            Required for BM25.
+        doc_length : int, keyword-only
+            Total token count of this document.  Required for BM25.
+        doc_terms_full : dict[str, int] | None, keyword-only
+            Complete term vector for this document.  Required for VECTOR.
+
+        Returns
+        -------
+        float
+            Relevance score >= 0.0.
+        """
+        candidates = {doc_id: doc_tf}
+        doc_lengths = {doc_id: doc_length} if ranking_mode == RankingMode.BM25 else None
+        full_terms = {doc_id: doc_terms_full or {}} if ranking_mode == RankingMode.VECTOR else None
+
+        scores = self.rank(
+            ranking_mode   = ranking_mode,
+            candidates     = candidates,
+            doc_freq       = doc_freq,
+            total_docs     = total_docs,
+            query_terms    = query_terms,
+            avg_doc_length = avg_doc_length,
+            doc_lengths    = doc_lengths,
+            doc_terms_full = full_terms,
+        )
+        return scores.get(doc_id, 0.0)

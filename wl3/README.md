@@ -1,9 +1,9 @@
 # WL3 — Ranking, Caching & Evaluation
 
 > **Branch**: `wl3-dev-advait`  
-> **Owner (Person 1)**: Ranking & Retrieval — `wl3/ranking/`, `wl3/retrieval/`  
+> **Owner (Person 1)**: Ranking & Retrieval + Evaluation — `wl3/ranking/`, `wl3/retrieval/`, `wl3/engine/models.py`, `wl3/evaluation/`  
 > **Language**: Python 3.12+ (zero external dependencies)  
-> **Tests**: 57 unit tests + 85 stress tests — all passing  
+> **Tests**: 94 unit tests + 85 stress tests — all passing  
 
 ---
 
@@ -24,29 +24,32 @@
    - [VectorScorer](#vectorscorerankingvectorpy)
    - [Ranker & RankingMode](#ranker--rankingmoderankingrankpy)
    - [TopKRetriever & ScoredDocument](#topkretriever--scoreddocumentretrievaltop_kpy)
+   - [RankedResult](#rankedresultenginemodelspy)
+   - [Evaluation Module](#evaluation-module)
 7. [W2 Interface Contract](#w2-interface-contract)
 8. [Running Tests](#running-tests)
 9. [Running Stress Tests](#running-stress-tests)
-10. [Integration Guide](#integration-guide)
-11. [Bugs Found & Fixed](#bugs-found--fixed)
-12. [Performance Benchmarks](#performance-benchmarks)
-13. [File Manifest](#file-manifest)
+10. [Running the Evaluator](#running-the-evaluator)
+11. [Integration Guide](#integration-guide)
+12. [Bugs Found & Fixed](#bugs-found--fixed)
+13. [Performance Benchmarks](#performance-benchmarks)
+14. [File Manifest](#file-manifest)
 
 ---
 
 ## Overview
 
-This module implements the **Ranking & Retrieval** layer of Worklet 3.  
-It sits between the W2 index/query engine and the final result display:
+This module implements the **Ranking, Retrieval & Evaluation** layer of Worklet 3
+(Person 1 scope).  It sits between the W2 index/query engine and the final result display:
 
 ```
 User Query
     │
     ▼
 W2 Adapter (Person 4)
-    │  resolve_query()   → candidates dict, doc_freq dict
+    │  resolve_query()    → candidates dict, doc_freq dict
     │  get_corpus_stats() → total_docs, avg_doc_length
-    │  get_doc_terms()   → full per-doc term vectors
+    │  get_doc_terms()    → full per-doc term vectors
     ▼
 Ranker.rank(mode, ...)
     │  TFIDF  → TFIDFScorer  per doc  → {doc_id: score}
@@ -56,9 +59,14 @@ Ranker.rank(mode, ...)
 TopKRetriever.get_top_k(scores, k)          ← normal search
 TopKRetriever.get_top_k_for_mmr(scores, 20) ← when use_mmr=True
     ▼
-[ScoredDocument(doc_id, score), ...]
+QueryEngine (Person 4)
+    │  get_doc_snippet_data(final_ids) → title, url, text
+    │  builds RankedResult objects
     ▼
-QueryEngine (Person 4) → RankedResult list → CLI / Flask
+list[RankedResult] → CLI / Flask
+    ▼
+Evaluator (Person 1)
+    Precision@5/10, Recall@5/10, MRR, AP, latency
 ```
 
 ---
@@ -75,22 +83,26 @@ Mini-Search-Engine/
 │   │   ├── tfidf.py                TFIDFScorer
 │   │   ├── bm25.py                 BM25Scorer
 │   │   ├── vector.py               VectorScorer + static helpers
-│   │   └── ranker.py               Ranker facade + RankingMode enum
+│   │   └── ranker.py               Ranker facade + RankingMode enum + score_document()
 │   │
 │   ├── retrieval/                  ← Person 1
 │   │   ├── __init__.py             (re-exports TopKRetriever, ScoredDocument)
-│   │   └── top_k.py                TopKRetriever + ScoredDocument
+│   │   └── top_k.py                TopKRetriever + ScoredDocument + NaN filter
+│   │
+│   ├── engine/                     ← Person 1 (models only; QueryEngine = Person 4)
+│   │   ├── __init__.py
+│   │   └── models.py               RankedResult dataclass
+│   │
+│   ├── evaluation/                 ← Person 1
+│   │   ├── __init__.py             (re-exports all metrics + dataset helpers)
+│   │   ├── dataset.py              30 hand-labelled queries (SRS FR-9)
+│   │   ├── metrics.py              Precision@k, Recall@k, RR, MRR, AP, evaluate_ranking()
+│   │   └── evaluator.py            Evaluation runner + mock W2 adapter + CLI
 │   │
 │   ├── cache/                      ← Person 2 (TODO)
-│   │   └── __init__.py
 │   ├── feedback/                   ← Person 3 (TODO)
-│   │   └── __init__.py
 │   ├── diversification/            ← Person 3 (TODO)
-│   │   └── __init__.py
-│   ├── integration/                ← Person 4 (TODO)
-│   │   └── __init__.py
-│   └── engine/                     ← Person 4 (TODO)
-│       └── __init__.py
+│   └── integration/                ← Person 4 (TODO)
 │
 ├── tests/
 │   └── wl3/
@@ -100,13 +112,14 @@ Mini-Search-Engine/
 │       ├── test_vector.py          10 unit tests
 │       ├── test_ranker.py          9 unit tests
 │       ├── test_top_k.py           13 unit tests
-│       └── test_ranking_integration.py  5 integration tests
+│       ├── test_ranking_integration.py  5 integration tests
+│       └── test_evaluation.py      40+ evaluation unit tests
 │
 ├── docs/
 │   └── wl3/
 │       └── ranking_retrieval.md    Full technical documentation
 │
-├── run_tests.py                    Zero-dependency unit test runner
+├── run_tests.py                    Zero-dependency unit test runner (94 tests)
 └── stress_tests.py                 Extreme edge-case stress tests (85 checks)
 ```
 
@@ -121,8 +134,10 @@ Only the Python standard library is used:
 |--------|----------|
 | `math` | `log10`, `sqrt`, `isnan`, `isfinite` |
 | `heapq` | Top-K min-heap in `top_k.py` |
-| `dataclasses` | `@dataclass` for `ScoredDocument` |
+| `dataclasses` | `@dataclass` for `ScoredDocument`, `RankedResult` |
 | `enum` | `RankingMode` enum |
+| `statistics` | `mean()`, `median()` for latency in `evaluator.py` |
+| `sqlite3` | *(referenced by evaluator; not used in ranking/retrieval)* |
 
 **Python version**: 3.10+ (uses `dict[str, int]` union-type annotations)  
 Tested on Python 3.12.3.
@@ -152,11 +167,15 @@ python3 run_tests.py
 # 3. Run stress tests
 python3 stress_tests.py
 
-# 4. Use in your own code
+# 4. Run the evaluation report (mock data — no W2 needed)
+python3 -m wl3.evaluation.evaluator --mock
+
+# 5. Use in your own code
 python3 - <<'EOF'
 import sys; sys.path.insert(0, ".")
 from wl3.ranking.ranker import Ranker, RankingMode
 from wl3.retrieval.top_k import TopKRetriever
+from wl3.engine.models import RankedResult
 
 ranker = Ranker()
 
@@ -381,6 +400,7 @@ from wl3.ranking.ranker import Ranker, RankingMode
 
 ranker = Ranker(bm25_k1=1.5, bm25_b=0.75)
 
+# Batch scoring — primary use case
 scores: dict[int, float] = ranker.rank(
     ranking_mode   = RankingMode.BM25,       # TFIDF | BM25 | VECTOR
     candidates     = candidates,              # from resolve_query()
@@ -396,6 +416,17 @@ scores: dict[int, float] = ranker.rank(
     doc_terms_full = {0: {...}, 4: {...}, 7: {...}},
 )
 # → {0: 1.8010, 4: 1.65, 7: 1.44, 1: 0.33}
+
+# Single-document scoring — convenience alias (e.g. after Rocchio re-score)
+score: float = ranker.score_document(
+    ranking_mode = RankingMode.TFIDF,
+    doc_id       = 0,
+    doc_tf       = {"machine": 3},
+    doc_freq     = {"machine": 2},
+    total_docs   = 10,
+    query_terms  = ["machine"],
+)
+# → float ≥ 0.0
 ```
 
 **Required parameters by mode**:
@@ -458,9 +489,125 @@ class ScoredDocument:
 
 ---
 
+### `RankedResult` — `engine/models.py`
+
+The **shared output type** for the entire WL3 pipeline — QueryEngine builds these;
+CLI, Flask, and the Evaluator all consume them.
+
+```python
+from wl3.engine.models import RankedResult
+
+result = RankedResult(
+    doc_id  = 42,
+    score   = 3.1604,
+    title   = "Machine Learning Basics",
+    url     = "https://example.com/ml",
+    snippet = "Machine learning is a subset of AI...",
+    rank    = 1,          # 1-based position, set by QueryEngine
+)
+
+# Serialise for JSON (Flask) or display (CLI)
+result.to_dict()
+# → {"rank": 1, "doc_id": 42, "score": 3.1604, "title": "...", "url": "...", "snippet": "..."}
+```
+
+```python
+@dataclass
+class RankedResult:
+    doc_id:  int
+    score:   float
+    title:   str = ""
+    url:     str = ""
+    snippet: str = ""
+    rank:    int = 0
+```
+
+**QueryEngine contract** (SRS §3.2.1):
+```python
+engine.search(query, session_id, ranking_mode, k, use_mmr) -> list[RankedResult]
+```
+
+---
+
+### Evaluation Module
+
+**Files**: `wl3/evaluation/`
+
+Satisfies **SRS FR-9** — evaluates TF-IDF, BM25, and Vector ranking over a
+labelled query set with Precision@5/10, Recall@5/10, MRR, AP, and latency.
+
+#### `metrics.py` — individual metric functions
+
+```python
+from wl3.evaluation.metrics import (
+    precision_at_k,       # P@k = |relevant ∩ top-k| / k
+    recall_at_k,          # R@k = |relevant ∩ top-k| / |relevant|
+    reciprocal_rank,      # RR  = 1 / rank_of_first_relevant
+    mean_reciprocal_rank, # MRR = mean(RR) over a query set
+    average_precision,    # AP  = mean P@k over relevant ranks
+    evaluate_ranking,     # All metrics for one query → dict
+    aggregate_metrics,    # Mean over all queries → dict (adds "mrr" key)
+)
+
+retrieved    = [7, 0, 4, 1, 12, 23, 5, 8, 3, 2]   # ranked doc_ids
+relevant_ids = {0, 4, 7, 12, 23}
+
+# Single-query report
+report = evaluate_ranking(retrieved, relevant_ids, ks=[5, 10])
+# → {"precision@5": 0.8, "recall@5": 0.8, "precision@10": 0.5,
+#    "recall@10": 1.0, "rr": 1.0, "ap": 0.9267}
+```
+
+**Hand-calculated reference** (for the example above):
+
+| Metric | Value | Working |
+|--------|-------|---------|
+| P@5 | 0.800 | top-5 = [7,0,4,1,12] → 4 hits / 5 |
+| R@5 | 0.800 | 4 of 5 relevant found |
+| P@10 | 0.500 | 5 hits / 10 |
+| R@10 | 1.000 | all 5 relevant found |
+| RR | 1.000 | first relevant at rank 1 |
+| AP | 0.9267 | (1+1+1+0.8+0.833) / 5 |
+
+#### `dataset.py` — labelled query set
+
+```python
+from wl3.evaluation.dataset import get_queries, get_query_by_text
+
+queries = get_queries()        # list of 30 labelled dicts
+# Each entry: {"query": str, "relevant_docs": list[int], "description": str}
+
+entry = get_query_by_text("machine learning")
+# → {"query": "machine learning", "relevant_docs": [0, 4, 7, 12, 18, 23], ...}
+```
+
+30 queries across 4 topic areas (SRS requires 30–50):
+
+| Topic area | Queries |
+|------------|---------|
+| Machine Learning & AI | 10 |
+| Data Science & Statistics | 8 |
+| Computer Science Fundamentals | 6 |
+| Information Retrieval | 6 |
+
+> **Note**: `relevant_docs` IDs are synthetic placeholders. Replace them with real
+> doc_ids once the W1/W2 corpus is indexed.
+
+#### `evaluator.py` — evaluation runner
+
+```python
+from wl3.evaluation.evaluator import run_evaluation, print_report
+
+results = run_evaluation(adapter=None, ks=[5, 10])  # None → uses mock adapter
+print_report(results)
+```
+
+---
+
 ## W2 Interface Contract
 
-WL3 talks to WL2 through exactly **5 functions** (via Person 4's adapter):
+WL3 talks to WL2 through exactly **5 functions** (via Person 4's adapter).
+These are the SRS §3.2 official names — use them exactly:
 
 ```python
 # 1. Called for every search — provides TF and DF data
@@ -485,6 +632,13 @@ doc_terms: dict[int, dict[str, int]] = adapter.get_doc_terms([0, 4, 7])
 # → {0: {"machine": 3, "learning": 4, "subset": 1, ...}, ...}
 ```
 
+**SRS-defined data types** (§3.2 interface names):
+
+| Name | Direction | Content |
+|------|-----------|---------|
+| `QueryResult` | W2 → W3 | `{query, matched_doc_ids, postings_for_query_terms, document_statistics}` |
+| `SearchResponse` | W3 → User | `{query, results: [RankedResult]}` |
+
 **Important**: WL3 never talks to WL1 directly. WL2 relays `get_doc_snippet_data` and `get_doc_terms` from WL1.
 
 ---
@@ -500,10 +654,10 @@ python3 run_tests.py
 
 Expected output:
 ```
-Ran 57 tests in 0.002s
+Ran 94 tests in 0.003s
 OK
 ============================================================
-RESULTS: 57/57 tests passed ✅
+RESULTS: 94/94 tests passed ✅
 ============================================================
 ```
 
@@ -523,6 +677,7 @@ python3 -m pytest tests/wl3/test_vector.py -v
 python3 -m pytest tests/wl3/test_ranker.py -v
 python3 -m pytest tests/wl3/test_top_k.py -v
 python3 -m pytest tests/wl3/test_ranking_integration.py -v
+python3 -m pytest tests/wl3/test_evaluation.py -v
 
 # Run with short traceback on failure
 python3 -m pytest tests/wl3/ -v --tb=short
@@ -538,7 +693,8 @@ python3 -m pytest tests/wl3/ -v --tb=short
 | `test_ranker.py` | 9 | All 3 modes, missing params error, enum values, empty candidates |
 | `test_top_k.py` | 13 | k=0/k>n/k=-1, ties, negatives, NaN, Inf, MMR pool |
 | `test_ranking_integration.py` | 5 | End-to-end W2→Ranker→TopK pipelines for all 3 modes |
-| **Total** | **57** | |
+| `test_evaluation.py` | 37+ | Precision@k, Recall@k, RR, MRR, AP, evaluate_ranking, aggregate_metrics, dataset, RankedResult, score_document |
+| **Total** | **94** | |
 
 ---
 
@@ -574,6 +730,66 @@ Expected output:
 
 ---
 
+## Running the Evaluator
+
+The evaluator compares all three ranking modes across the labelled query set.
+
+### Standalone (mock data — no W2 needed)
+
+```bash
+cd Mini-Search-Engine
+python3 -m wl3.evaluation.evaluator --mock
+```
+
+Example output:
+```
+════════════════════════════════════════════════════════════
+  WL3 Ranking Evaluation
+════════════════════════════════════════════════════════════
+[Evaluator] Running 30 queries against 200 docs ...
+
+  ... 10/30 queries done
+  ... 20/30 queries done
+  ... 30/30 queries done
+
+──────────────────────────────────────────────────
+Metric                 TFIDF      BM25    VECTOR
+──────────────────────────────────────────────────
+P@5                    0.013     0.013     0.073
+R@5                    0.017     0.017     0.089
+P@10                   0.010     0.013     0.047
+R@10                   0.025     0.033     0.114
+MRR                    0.071     0.047     0.153
+Mean AP                0.018     0.012     0.048
+Avg latency (ms)        0.05      0.06      0.07
+Med latency (ms)        0.04      0.06      0.07
+──────────────────────────────────────────────────
+```
+
+> The mock adapter generates synthetic data — scores are not meaningful.
+> Real numbers require the W1/W2 corpus and real `relevant_docs` IDs in `dataset.py`.
+
+### With real W2 (once adapter is available)
+
+```python
+from wl3.evaluation.evaluator import run_evaluation, print_report
+from wl3.integration.worklet2_adapter import Worklet2Adapter  # Person 4
+
+adapter = Worklet2Adapter(...)
+results = run_evaluation(adapter=adapter, ks=[5, 10])
+print_report(results)
+```
+
+### CLI flags
+
+```bash
+python3 -m wl3.evaluation.evaluator --mock          # mock adapter
+python3 -m wl3.evaluation.evaluator --mock --k 5 10 # custom cutoffs
+python3 -m wl3.evaluation.evaluator --mock --top 20 # retrieve top-20 per query
+```
+
+---
+
 ## Integration Guide
 
 ### For Person 4 (QueryEngine) — minimal calling template
@@ -581,10 +797,12 @@ Expected output:
 ```python
 from wl3.ranking.ranker import Ranker, RankingMode
 from wl3.retrieval.top_k import TopKRetriever
+from wl3.engine.models import RankedResult
 
 ranker = Ranker()
 
-def search(query: str, mode: RankingMode, k: int, use_mmr: bool):
+def search(query: str, mode: RankingMode, k: int, use_mmr: bool,
+           session_id: str = "") -> list[RankedResult]:
     # Step 1 — always needed
     candidates, doc_freq = adapter.resolve_query(query)
     stats = adapter.get_corpus_stats()          # call once, cache at startup
@@ -610,9 +828,24 @@ def search(query: str, mode: RankingMode, k: int, use_mmr: bool):
     # Step 4 — retrieve
     if use_mmr:
         pool = TopKRetriever.get_top_k_for_mmr(scores, pool_size=20)
-        return mmr.rerank(pool, ...)            # Person 3
+        final = mmr.rerank(pool, ...)            # Person 3
     else:
-        return TopKRetriever.get_top_k(scores, k)
+        final = TopKRetriever.get_top_k(scores, k)
+
+    # Step 5 — build RankedResult objects
+    final_ids = [r.doc_id for r in final]
+    snippets = adapter.get_doc_snippet_data(final_ids)
+    return [
+        RankedResult(
+            doc_id  = r.doc_id,
+            score   = r.score,
+            rank    = i + 1,
+            title   = snippets[r.doc_id]["title"],
+            url     = snippets[r.doc_id]["url"],
+            snippet = snippets[r.doc_id]["text"][:200],
+        )
+        for i, r in enumerate(final)
+    ]
 ```
 
 ### For Person 3 (MMR / Rocchio) — static helpers
@@ -683,39 +916,65 @@ All benchmarks on Python 3.12.3, commodity hardware (16 cores):
 | TopK extract | Top-10 from 10,000 scored docs | **1.5 ms** |
 | MMR pool | Top-20 from 10,000 scored docs | **1.4 ms** |
 | TF-IDF rank | 500-term query, 1 document | **< 1 ms** |
+| Evaluator (mock) | 30 queries × 3 modes | **< 10 ms** |
 
-All well within real-time search requirements.
+All well within real-time search requirements (target: ≤ 300 ms warm-cache).
 
 ---
 
 ## File Manifest
+
+### Ranking & Retrieval
 
 | File | Description |
 |------|-------------|
 | `wl3/ranking/tfidf.py` | `TFIDFScorer` — raw TF × log₁₀(N/df) |
 | `wl3/ranking/bm25.py` | `BM25Scorer(k1, b)` — Okapi BM25 with Robertson IDF |
 | `wl3/ranking/vector.py` | `VectorScorer` — sparse TF-IDF cosine + static helpers |
-| `wl3/ranking/ranker.py` | `Ranker` + `RankingMode` — Strategy pattern facade |
+| `wl3/ranking/ranker.py` | `Ranker` + `RankingMode` + `score_document()` — Strategy pattern facade |
 | `wl3/ranking/__init__.py` | Re-exports: `TFIDFScorer, BM25Scorer, VectorScorer, Ranker, RankingMode` |
 | `wl3/retrieval/top_k.py` | `TopKRetriever` — O(N log K) heapq + NaN filter |
 | `wl3/retrieval/__init__.py` | Re-exports: `TopKRetriever, ScoredDocument` |
-| `tests/wl3/__init__.py` | Empty — pytest package marker |
-| `tests/wl3/test_tfidf.py` | 11 TF-IDF unit tests |
-| `tests/wl3/test_bm25.py` | 9 BM25 unit tests |
-| `tests/wl3/test_vector.py` | 10 Vector/Cosine unit tests |
-| `tests/wl3/test_ranker.py` | 9 Ranker unit tests |
-| `tests/wl3/test_top_k.py` | 13 Top-K unit tests |
-| `tests/wl3/test_ranking_integration.py` | 5 end-to-end integration tests |
-| `docs/wl3/ranking_retrieval.md` | Extended technical documentation |
-| `run_tests.py` | Zero-dependency unittest runner (57 tests) |
+
+### Models & Evaluation
+
+| File | Description |
+|------|-------------|
+| `wl3/engine/models.py` | `RankedResult` — shared output dataclass (SRS §3.2.1) |
+| `wl3/engine/__init__.py` | Re-exports: `RankedResult` |
+| `wl3/evaluation/dataset.py` | 30 hand-labelled queries for FR-9 evaluation |
+| `wl3/evaluation/metrics.py` | `precision_at_k`, `recall_at_k`, `RR`, `MRR`, `AP`, `evaluate_ranking`, `aggregate_metrics` |
+| `wl3/evaluation/evaluator.py` | Evaluation runner + mock W2 adapter + `--mock` CLI |
+| `wl3/evaluation/__init__.py` | Re-exports all metric functions + dataset helpers |
+
+### Tests
+
+| File | Tests | What's covered |
+|------|-------|----------------|
+| `tests/wl3/__init__.py` | — | pytest package marker |
+| `tests/wl3/test_tfidf.py` | 11 | TF-IDF scoring |
+| `tests/wl3/test_bm25.py` | 9 | BM25 scoring |
+| `tests/wl3/test_vector.py` | 10 | Vector/Cosine scoring |
+| `tests/wl3/test_ranker.py` | 9 | Ranker facade |
+| `tests/wl3/test_top_k.py` | 13 | Top-K retrieval |
+| `tests/wl3/test_ranking_integration.py` | 5 | End-to-end pipelines |
+| `tests/wl3/test_evaluation.py` | 37+ | All evaluation metrics + dataset |
+
+### Infrastructure
+
+| File | Description |
+|------|-------------|
+| `run_tests.py` | Zero-dependency unittest runner (94 tests) |
 | `stress_tests.py` | Adversarial + extreme edge-case tests (85 checks) |
+| `docs/wl3/ranking_retrieval.md` | Extended technical documentation |
 
 ---
 
 ## Git History (this branch)
 
 ```
-a689fa3  Bug fixes V1  — negative IDF clamp, NaN TopK filter
-b999006  Basic TFIDF, BM25  — all ranking & retrieval code + tests + docs
-9f97768  feat: worklet 3 structure and package initialization
+<current>  feat: evaluation module, RankedResult, score_document alias
+a689fa3    fix: negative IDF clamp, NaN TopK filter, stress tests
+b999006    feat: TFIDF, BM25, Vector, Ranker, TopK + all tests + docs
+9f97768    feat: worklet 3 structure and package initialization
 ```
