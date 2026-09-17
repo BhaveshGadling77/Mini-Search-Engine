@@ -175,3 +175,139 @@ def test_cache_manager_clear():
     assert len(cache) == 0
     assert cache.get(key1) is None
     assert cache.get(key2) is None
+
+
+def test_sqlite_fallback_promotes_to_lru(tmp_path):
+    db_path = tmp_path / "cache.db"
+
+    key = build_cache_key(
+        "machine learning",
+        "bm25",
+        10,
+        False,
+        "v17",
+    )
+
+    value = ["result1", "result2"]
+
+    # Manager 1 writes to both LRU and SQLite.
+    cache1 = CacheManager(
+        capacity=10,
+        db_path=str(db_path),
+        index_version="v17",
+    )
+
+    cache1.put(key, value)
+
+    # Manager 2 simulates a fresh application process.
+    # Its LRU starts empty, but SQLite contains the result.
+    cache2 = CacheManager(
+        capacity=10,
+        db_path=str(db_path),
+        index_version="v17",
+    )
+
+    assert cache2.get(key) == value
+
+    # The SQLite result should have been promoted into LRU.
+    assert len(cache2) == 1
+
+
+def test_stale_sqlite_entry_is_not_returned(tmp_path):
+    db_path = tmp_path / "cache.db"
+
+    key = build_cache_key(
+        "machine learning",
+        "bm25",
+        10,
+        False,
+        "v17",
+    )
+
+    value = ["old result"]
+
+    cache1 = CacheManager(
+        capacity=10,
+        db_path=str(db_path),
+        index_version="v17",
+    )
+
+    cache1.put(key, value)
+
+    # New index version.
+    cache2 = CacheManager(
+        capacity=10,
+        db_path=str(db_path),
+        index_version="v18",
+    )
+
+    assert cache2.get(key) is None
+
+
+def test_put_stores_in_both_levels(tmp_path):
+    db_path = tmp_path / "cache.db"
+
+    key = build_cache_key(
+        "machine learning",
+        "bm25",
+        10,
+        False,
+        "v17",
+    )
+
+    value = ["result1"]
+
+    cache = CacheManager(
+        capacity=10,
+        db_path=str(db_path),
+        index_version="v17",
+    )
+
+    cache.put(key, value)
+
+    # L1 hit.
+    assert cache.get(key) == value
+
+    # Create a new manager.
+    # This forces lookup through SQLite.
+    new_cache = CacheManager(
+        capacity=10,
+        db_path=str(db_path),
+        index_version="v17",
+    )
+
+    assert new_cache.get(key) == value
+
+
+def test_clear_removes_both_levels(tmp_path):
+    db_path = tmp_path / "cache.db"
+
+    key = build_cache_key(
+        "machine learning",
+        "bm25",
+        10,
+        False,
+        "v17",
+    )
+
+    value = ["result1"]
+
+    cache = CacheManager(
+        capacity=10,
+        db_path=str(db_path),
+        index_version="v17",
+    )
+
+    cache.put(key, value)
+    cache.clear()
+
+    assert cache.get(key) is None
+
+    # New manager confirms SQLite was also cleared.
+    new_cache = CacheManager(
+        capacity=10,
+        db_path=str(db_path),
+        index_version="v17",
+    )
+
+    assert new_cache.get(key) is None
