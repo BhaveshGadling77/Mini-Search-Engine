@@ -31,7 +31,9 @@ RETRY_BACKOFF_S = 2.0
 RESPECT_ROBOTS_TXT = True
 
 # --- Crawl limits ---------------------------------------------------------
-MAX_PAGES = 100
+MAX_PAGES = 500
+MAX_DEPTH = 5
+MAX_LINKS_PER_PAGE = 3
 
 # --- File paths (absolute, resolved from project root) --------------------
 _seeds_candidate = _ROOT / "seeds.txt"

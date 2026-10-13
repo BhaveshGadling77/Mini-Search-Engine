@@ -30,11 +30,19 @@ class CrawlEngine:
         self,
         seeds: list[str],
         max_pages: int | None = None,
+        max_depth: int | None = None,
+        max_links_per_page: int | None = None,
         allowed_domains: list[str] | None = None,
         fetcher: Fetcher | None = None,
         store: JSONLStore | None = None,
     ) -> None:
         self.max_pages = max_pages if max_pages is not None else config.MAX_PAGES
+        self.max_depth = max_depth if max_depth is not None else getattr(config, "MAX_DEPTH", None)
+        self.max_links_per_page = (
+            max_links_per_page
+            if max_links_per_page is not None
+            else getattr(config, "MAX_LINKS_PER_PAGE", None)
+        )
         self.frontier = URLFrontier(
             seeds=seeds, allowed_domains=allowed_domains
         )
@@ -79,12 +87,20 @@ class CrawlEngine:
             )
             self.store.append(document)
             stored += 1
-            logger.info("Stored %s (%s)", document.doc_id, url)
+            logger.info("Stored %s (depth=%d, %s)", document.doc_id, depth, url)
 
-            for link in links:
-                normalized = self.frontier.add(link)
-                if normalized is not None:
-                    self._depth[normalized] = depth + 1
+            if self.max_depth is None or depth < self.max_depth:
+                added_for_page = 0
+                for link in links:
+                    if (
+                        self.max_links_per_page is not None
+                        and added_for_page >= self.max_links_per_page
+                    ):
+                        break
+                    normalized = self.frontier.add(link)
+                    if normalized is not None:
+                        self._depth[normalized] = depth + 1
+                        added_for_page += 1
 
         return stored
 
