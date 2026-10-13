@@ -88,7 +88,7 @@ class URLFrontier:
         elif scheme == "https" and netloc.endswith(":443"):
             netloc = netloc[:-4]
 
-        path = parts.path
+        path = parts.path.strip()
         if path == "":
             path = "/"
         path = path.rstrip("/") or "/"

@@ -45,3 +45,14 @@ def test_to_dict_matches_schema():
     assert set(record) == {"doc_id", "url", "text", "tokens", "meta"}
     # tokens serialized as list in JSON, even though stored as tuple
     assert isinstance(record["tokens"], list)
+
+
+def test_corpus_path_mapped_to_data_dir():
+    from crawler import config
+    assert os.path.isabs(config.CORPUS_PATH)
+    assert os.path.basename(config.CORPUS_PATH) == "corpus.jsonl"
+    data_dir = os.path.dirname(config.CORPUS_PATH)
+    assert os.path.basename(data_dir) == "data"
+    assert os.path.isdir(config.DATA_DIR)
+    assert os.path.samefile(data_dir, config.DATA_DIR)
+

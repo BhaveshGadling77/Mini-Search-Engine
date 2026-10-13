@@ -12,7 +12,15 @@ from __future__ import annotations
 from pathlib import Path
 
 # ─── Resolved project root (works regardless of working directory) ────────
-_ROOT = Path(__file__).resolve().parent.parent
+def _resolve_project_root() -> Path:
+    current = Path(__file__).resolve().parent
+    for parent in [current, *current.parents]:
+        if (parent / "data").is_dir() and ((parent / ".git").exists() or (parent / "README.md").exists()):
+            return parent
+    return Path(__file__).resolve().parents[2]
+
+
+_ROOT = _resolve_project_root()
 
 # --- HTTP / politeness -----------------------------------------------------
 USER_AGENT = "MiniSearchEngine/1.0 (+educational-crawler)"
@@ -26,7 +34,13 @@ RESPECT_ROBOTS_TXT = True
 MAX_PAGES = 100
 
 # --- File paths (absolute, resolved from project root) --------------------
-SEED_FILE = str(_ROOT / "seeds.txt")
+_seeds_candidate = _ROOT / "seeds.txt"
+if not _seeds_candidate.is_file():
+    _wl1_seeds = _ROOT / "wl1" / "seeds.txt"
+    if _wl1_seeds.is_file():
+        _seeds_candidate = _wl1_seeds
+
+SEED_FILE = str(_seeds_candidate)
 DATA_DIR = str(_ROOT / "data")
 CORPUS_PATH = str(_ROOT / "data" / "corpus.jsonl")
 LOG_DIR = str(_ROOT / "logs")

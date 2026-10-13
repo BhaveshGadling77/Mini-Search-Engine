@@ -17,11 +17,12 @@ from crawler.store import JSONLStore
 
 def load_seeds(seed_file: str) -> list[str]:
     with open(seed_file, encoding="utf-8") as handle:
-        return [
-            line.strip()
-            for line in handle
-            if line.strip() and not line.lstrip().startswith("#")
-        ]
+        seeds: list[str] = []
+        for line in handle:
+            cleaned = line.split("#", 1)[0].strip()
+            if cleaned:
+                seeds.append(cleaned)
+        return seeds
 
 
 def setup_logging(log_path: str) -> None:
