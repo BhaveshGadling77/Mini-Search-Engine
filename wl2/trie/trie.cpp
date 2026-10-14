@@ -4,6 +4,8 @@
 #include<string>
 #include<vector>
 #include <unordered_set>
+#include <unordered_map>
+#include <algorithm>
 
 using namespace std;
 
@@ -19,6 +21,11 @@ void Trie::reverseWord(string &word){
 }
 
 void Trie::insert(string word){
+    int n = word.size();
+    for(int i = 0; i <= n - k; i++){
+        string sub = word.substr(i, k);
+        kgramIndex[sub].insert(word);
+    }
     TrieNode* node = root;
     for(char c : word){
         int index = c - 'a';
@@ -100,6 +107,32 @@ vector<string> Trie::searchForWildCard(string prefix, string suffix){
         if(s.find(word) != s.end()){
             result.push_back(word);
         }
+    }
+    return result;
+}
+
+vector<string> Trie::searchForInfixWildCard(string word){
+    if(word.size() < k){
+        return {};
+    }
+    int n = word.size();
+    vector<string> result;
+    unordered_set <string> s1;
+    unordered_set<string> res;
+    for(int i = 0; i <= n - k; i++){
+        string str = word.substr(i,k);
+        if(s1.empty() == true){
+            s1 = kgramIndex[str];
+            res = s1;
+        }
+        else{
+            unordered_set<string> s2 = kgramIndex[str];
+            set_intersection(s1.begin(), s1.end(), s2.begin(), s2.end(), inserter(res, res.begin()));
+            s1 = res;
+        }
+    }
+    for(auto &p: res){
+        result.push_back(p);
     }
     return result;
 }
