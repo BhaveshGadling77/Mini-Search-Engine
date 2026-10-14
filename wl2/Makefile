@@ -1,30 +1,42 @@
 CXX ?= g++
 CXXFLAGS ?= -std=c++17 -Wall -Wextra -O2
 
-SRCDIR = Pos_Inverted_Index
-OPSDIR = boolean_operations
-TESTDIR = ../tests/wl2
+BUILD_DIR := build
+INDEX_DIR := Inverted_Index
+OPS_DIR := boolean_operations
+TEST_DIR := ../tests/wl2
 
-SRC_FILES = $(SRCDIR)/HashMap.cpp $(SRCDIR)/JsonReader.cpp
-MAIN_FILE = $(SRCDIR)/main.cpp
-POSTINGS_OPS_SRC = $(OPSDIR)/PostingsOperations.cpp
+INDEX_SOURCES := \
+	$(INDEX_DIR)/main.cpp \
+	$(INDEX_DIR)/CorpusReader.cpp \
+	$(INDEX_DIR)/HashMap.cpp \
+	$(INDEX_DIR)/Posting.cpp
 
-TEST_SRC = $(TESTDIR)/PostingsOperationsTest.cpp
+QUERY_TEST_SOURCES := \
+	$(TEST_DIR)/QueryPostingsOperationsTest.cpp \
+	$(OPS_DIR)/PostingsOperations.cpp \
+	$(INDEX_DIR)/Posting.cpp
 
-.PHONY: all test asan clean
+.PHONY: all index run test clean
 
-all: main
+all: test
 
-main: $(MAIN_FILE) $(SRC_FILES)
-	$(CXX) $(CXXFLAGS) -I$(SRCDIR) $^ -o $(SRCDIR)/index_engine
+index: $(BUILD_DIR)/index_engine
 
-test: $(TEST_SRC) $(POSTINGS_OPS_SRC)
-	$(CXX) $(CXXFLAGS) -I$(OPSDIR) $^ -o $(TESTDIR)/test_runner
-	./$(TESTDIR)/test_runner
+$(BUILD_DIR):
+	mkdir -p $(BUILD_DIR)
 
-asan: $(TEST_SRC) $(POSTINGS_OPS_SRC)
-	$(CXX) -std=c++17 -Wall -Wextra -g -fsanitize=address,undefined -I$(OPSDIR) $^ -o $(TESTDIR)/test_runner_asan
-	./$(TESTDIR)/test_runner_asan
+$(BUILD_DIR)/index_engine: $(INDEX_SOURCES) | $(BUILD_DIR)
+	$(CXX) $(CXXFLAGS) -I$(INDEX_DIR) $^ -o $@
+
+$(BUILD_DIR)/query_postings_operations_test: $(QUERY_TEST_SOURCES) | $(BUILD_DIR)
+	$(CXX) $(CXXFLAGS) -I$(INDEX_DIR) -I$(OPS_DIR) $^ -o $@
+
+run: $(BUILD_DIR)/index_engine
+	cd $(INDEX_DIR) && ../$(BUILD_DIR)/index_engine
+
+test: $(BUILD_DIR)/query_postings_operations_test
+	./$(BUILD_DIR)/query_postings_operations_test
 
 clean:
-	rm -f $(SRCDIR)/index_engine $(TESTDIR)/test_runner $(TESTDIR)/test_runner_asan
+	rm -rf $(BUILD_DIR)
