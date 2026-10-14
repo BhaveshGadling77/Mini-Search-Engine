@@ -2,23 +2,29 @@
 #define HASHMAP_H
 
 #include <string>
+#include <vector>
 //#include <iostream>
 #include "Posting.h"
 using namespace std;
+
 constexpr int TABLE_SIZE = 211;
+
 class HashMap {
 private:
-    //static const int TABLE_SIZE = 211;
-
+    // Each bucket stores the head of a linked list
     struct Entry {
         string key;
         PostingList* value;
         Entry* next;
     };
 
-    Entry* table[TABLE_SIZE];
+    vector<Entry*> table;
+    int entryCount;
 
     int hashFunction(const string& key) const;
+
+    // Increase table size when it becomes too full
+    void rehash();
 
 public:
     HashMap();
@@ -30,7 +36,7 @@ public:
     // search, true if exists
     bool search(const string& word) const;
 
-    //add occurance doc + pos and insert word f=if not exists
+    // add occurrence doc + pos and insert word if not exists
     void update(const string& word, int docId, int pos);
 
     void displayAll() const;

@@ -1,5 +1,5 @@
-#ifndef JSONREADER_H
-#define JSONREADER_H
+#ifndef CORPUSREADER_H
+#define CORPUSREADER_H
 
 #include <string>
 #include <vector>

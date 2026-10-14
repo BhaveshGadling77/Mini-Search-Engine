@@ -1,6 +1,6 @@
 #include <iostream>
 #include "HashMap.h"
-#include "JsonReader.h"
+#include "CorpusReader.h"
 using namespace std;
 
 int main() {
@@ -11,7 +11,7 @@ int main() {
 
     HashMap index;
 
-    //positiona inverted index
+    //positional inverted index
     for (size_t d = 0; d < docs.size(); d++) {
         Document& doc = docs[d];
         for (size_t pos = 0; pos < doc.tokens.size(); pos++) {
@@ -27,7 +27,7 @@ int main() {
     cout << "search(\"notaword\") = " << index.search("notaword") << endl;
 
     //user inputs
-    cout << endl << "Enter a word to look up (or 'exit' to quit):" << endl;
+    cout << endl << "anshul Enter a word to look up (or 'exit' to quit):" << endl;
     string word;
     while (cout << "> " && cin >> word) {
         if (word == "exit") break;
