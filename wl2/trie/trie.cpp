@@ -85,7 +85,6 @@ vector<string> Trie::searchForSuffix(string word){
 }
 
 vector<string> Trie::searchForWildCard(string prefix, string suffix){
-    reverseWord(suffix);
     vector<string> pre = searchForPrefix(prefix);
     vector<string> suf = searchForSuffix(suffix);
     unordered_set<string> p;
