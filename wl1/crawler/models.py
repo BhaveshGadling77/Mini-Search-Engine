@@ -4,14 +4,13 @@
 Worklet 3 (ranking). Its JSON serialization (see ``to_dict``) is the
 frozen interface contract between worklets.
 
-The ``doc_id`` is a collision-safe truncated UUID rather than a sequential
-counter, so parallel runs / restarts never produce duplicate keys.
+The ``doc_id`` is a sequential identifier formatted like ``"000XXX"``
+(e.g. ``"000001"``) where XXX is the running sequence.
 """
 
 from __future__ import annotations
 
 import dataclasses
-import uuid
 from datetime import datetime, timezone
 from typing import Any
 
@@ -41,9 +40,9 @@ class Document:
         }
 
     @staticmethod
-    def new_doc_id() -> str:
-        """Generate a unique document id, e.g. ``d-3f2a1b9c``."""
-        return "d-" + uuid.uuid4().hex[:8]
+    def new_doc_id(seq: int = 1) -> str:
+        """Generate a sequential document id formatted like ``000XXX``, e.g. ``000001``."""
+        return f"{int(seq):06d}"
 
     @staticmethod
     def now_iso() -> str:

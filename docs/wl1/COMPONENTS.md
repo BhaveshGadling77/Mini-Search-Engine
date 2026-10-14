@@ -31,7 +31,7 @@ seeds.txt ──► main.py ──► CrawlEngine
                         Document (model) ──► JSONLStore           │
                                               │                  │
                                               ▼                  │
-                                        data/corpus.jsonl        │
+                                         data/crawler.json        │
                                                                  │
                           (outbound URLs fed back to frontier) ◄─┘
 ```
@@ -59,7 +59,7 @@ Mini-Search-Engine/
 ├── docs/
 │   └── COMPONENTS.md        # this file
 ├── data/                    # generated (gitignored)
-│   └── corpus.jsonl
+│   └── crawler.json
 └── tests/
     ├── __init__.py
     ├── test_frontier.py
@@ -87,7 +87,7 @@ any other module.
 | `RESPECT_ROBOTS_TXT` | `True`                                        | Honor robots.txt                                |
 | `MAX_PAGES`          | `100`                                         | Default document budget                         |
 | `SEED_FILE`          | `<project_root>/seeds.txt`                    | Default seed file (absolute path)               |
-| `CORPUS_PATH`        | `<project_root>/data/corpus.jsonl`            | Default output (absolute path)                  |
+| `CORPUS_PATH`        | `<project_root>/data/crawler.json`            | Default output (absolute path)                  |
 | `LOG_PATH`           | `<project_root>/logs/crawler.log`             | Default log (absolute path)                     |
 | `STOPWORDS`          | frozen ~175 words                             | No `nltk` dependency                            |
 
@@ -109,7 +109,7 @@ Worklet 2 (indexing) and Worklet 3 (ranking).
 ```python
 @dataclasses.dataclass(frozen=True)
 class Document:
-    doc_id: str              # "d-3f2a1b9c"
+    doc_id: str              # "000001"
     url: str
     text: str                # clean visible text
     tokens: tuple[str, ...]  # normalized token tuple (immutable)
@@ -120,12 +120,12 @@ class Document:
 
 - `to_dict()` — JSON-serializable record; the frozen schema contract.
   Converts `tokens` tuple → list for JSON compatibility.
-- `new_doc_id()` — `"d-" + uuid4().hex[:8]`.
+- `new_doc_id(seq=1)` — `f"{seq:06d}"`, e.g. `"000001"`.
 - `now_iso()` — current UTC ISO 8601 timestamp.
 
-**Decision:** `doc_id` is a truncated UUID, not a sequential counter. This is
-collision-safe across restarts/parallel runs and removes the earlier
-`doc_00017` placeholder format from the spec.
+**Decision:** `doc_id` is a 6-digit zero-padded sequential string `"000XXX"`
+(e.g. `"000001"`), where XXX is the running sequence. This conforms to the
+specification contract expected by Worklet 2.
 
 **Decision:** `tokens` is stored as `tuple[str, ...]` (not `list`) to uphold
 the `frozen=True` immutability contract — prevents accidental mutation after
@@ -281,7 +281,7 @@ python main.py --seeds seeds.txt --max-pages 100
 | `lxml` (not `beautifulsoup4`)       | Already installed; fast, robust HTML parsing.                       |
 | Built-in stopwords (not `nltk`)     | Avoids ~70 MB dependency; deterministic.                            |
 | JSONL corpus                        | Streamable, `grep`-friendly, append-safe.                           |
-| UUID `doc_id`                       | Collision-safe; no global counter; removes `doc_00017` placeholder. |
+| Sequential `doc_id` (`000XXX`)      | Conforms to spec contract; predictable IDs (`000001`...) for W2/W3. |
 | Never raise on network/parse errors | Satisfies robustness constraint; log-and-skip.                      |
 | Robots.txt + per-domain politeness  | Polite crawling per SRS constraints; doesn't penalize cross-domain. |
 | `parse_page()` single-pass          | Avoids parsing the same HTML twice in the hot loop.                 |

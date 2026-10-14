@@ -35,6 +35,7 @@ class CrawlEngine:
         allowed_domains: list[str] | None = None,
         fetcher: Fetcher | None = None,
         store: JSONLStore | None = None,
+        start_seq: int = 1,
     ) -> None:
         self.max_pages = max_pages if max_pages is not None else config.MAX_PAGES
         self.max_depth = max_depth if max_depth is not None else getattr(config, "MAX_DEPTH", None)
@@ -48,6 +49,7 @@ class CrawlEngine:
         )
         self.fetcher = fetcher or Fetcher()
         self.store = store or JSONLStore(config.CORPUS_PATH)
+        self._doc_seq = start_seq - 1
         self._depth: dict[str, int] = {}
         for seed in seeds:
             normalized = URLFrontier.normalize(seed)
@@ -73,8 +75,9 @@ class CrawlEngine:
             text, links = parse_page(html, url)
             tokens = tokenize(text)
 
+            self._doc_seq += 1
             document = Document(
-                doc_id=Document.new_doc_id(),
+                doc_id=Document.new_doc_id(self._doc_seq),
                 url=url,
                 text=text,
                 tokens=tuple(tokens),

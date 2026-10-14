@@ -16,7 +16,7 @@
         <mxCell id="NKiq75pfGWnEbOgXrirQ-6" parent="NKiq75pfGWnEbOgXrirQ-3" style="swimlane;startSize=25;fillColor=#d5e8d4;  strokeColor=#82b366;fontStyle=3;fontSize=11;rounded=1;" value="«dataclass»&#xa;Document" vertex="1">
           <mxGeometry height="165" width="175" x="380" y="50" as="geometry" />
         </mxCell>
-        <mxCell id="NKiq75pfGWnEbOgXrirQ-7" parent="NKiq75pfGWnEbOgXrirQ-6" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;  spacingLeft=6;fontSize=11;" value="+ doc_id: str&#xa;+ url: str&#xa;+ text: str&#xa;+ tokens: tuple[str, ...  ]&#xa;+ meta: dict[str, Any]&#xa;──────────────────────&#xa;+ to_dict() → dict[str, Any]&#xa;+ new_doc_id() → str  «static»&#xa;+ now_iso() → str  «static»" vertex="1">
+        <mxCell id="NKiq75pfGWnEbOgXrirQ-7" parent="NKiq75pfGWnEbOgXrirQ-6" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;  spacingLeft=6;fontSize=11;" value="+ doc_id: str&#xa;+ url: str&#xa;+ text: str&#xa;+ tokens: tuple[str, ...  ]&#xa;+ meta: dict[str, Any]&#xa;──────────────────────&#xa;+ to_dict() → dict[str, Any]&#xa;+ new_doc_id(seq: int = 1) → str  «static»&#xa;+ now_iso() → str  «static»" vertex="1">
           <mxGeometry height="140" width="175" y="25" as="geometry" />
         </mxCell>
         <mxCell id="NKiq75pfGWnEbOgXrirQ-8" parent="NKiq75pfGWnEbOgXrirQ-3" style="swimlane;startSize=25;fillColor=#f8cecc;strokeColor=#b85450;  fontSize=11;rounded=1;" value="URLFrontier" vertex="1">

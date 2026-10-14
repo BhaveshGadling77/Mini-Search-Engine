@@ -44,7 +44,8 @@ if not _seeds_candidate.is_file():
 
 SEED_FILE = str(_seeds_candidate)
 DATA_DIR = str(_ROOT / "data")
-CORPUS_PATH = str(_ROOT / "data" / "corpus.jsonl")
+CORPUS_PATH = str(_ROOT / "data" / "crawler.json")
+CRAWLER_PATH = CORPUS_PATH
 LOG_DIR = str(_ROOT / "logs")
 LOG_PATH = str(_ROOT / "logs" / "crawler.log")
 
