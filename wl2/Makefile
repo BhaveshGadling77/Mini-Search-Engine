@@ -17,7 +17,12 @@ QUERY_TEST_SOURCES := \
 	$(OPS_DIR)/PostingsOperations.cpp \
 	$(INDEX_DIR)/Posting.cpp
 
-.PHONY: all index run test clean
+BENCHMARK_SOURCES := \
+	$(TEST_DIR)/PostingsOperationsBenchmark.cpp \
+	$(OPS_DIR)/PostingsOperations.cpp \
+	$(INDEX_DIR)/Posting.cpp
+
+.PHONY: all index run test benchmark clean
 
 all: test
 
@@ -32,11 +37,17 @@ $(BUILD_DIR)/index_engine: $(INDEX_SOURCES) | $(BUILD_DIR)
 $(BUILD_DIR)/query_postings_operations_test: $(QUERY_TEST_SOURCES) | $(BUILD_DIR)
 	$(CXX) $(CXXFLAGS) -I$(INDEX_DIR) -I$(OPS_DIR) $^ -o $@
 
+$(BUILD_DIR)/postings_operations_benchmark: $(BENCHMARK_SOURCES) | $(BUILD_DIR)
+	$(CXX) $(CXXFLAGS) -I$(INDEX_DIR) -I$(OPS_DIR) $^ -o $@
+
 run: $(BUILD_DIR)/index_engine
 	cd $(INDEX_DIR) && ../$(BUILD_DIR)/index_engine
 
 test: $(BUILD_DIR)/query_postings_operations_test
 	./$(BUILD_DIR)/query_postings_operations_test
+
+benchmark: $(BUILD_DIR)/postings_operations_benchmark
+	./$(BUILD_DIR)/postings_operations_benchmark
 
 clean:
 	rm -rf $(BUILD_DIR)
