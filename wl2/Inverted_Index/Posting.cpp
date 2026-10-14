@@ -37,6 +37,10 @@ void PostingList::addOccurrence(int docId, int pos) {
     postings.insert(it, newPost);
 }
 
+const vector<Posting>& PostingList::get_all() const {
+    return postings;
+}
+
 // Print the posting list
 void PostingList::print() const {
 

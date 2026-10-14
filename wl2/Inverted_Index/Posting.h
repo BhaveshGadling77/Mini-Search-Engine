@@ -173,6 +173,8 @@ public:
 
     void addOccurrence(int docId, int pos);
 
+    const vector<Posting>& get_all() const;
+
     void print() const;
 };
 
