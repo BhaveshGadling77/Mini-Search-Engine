@@ -7,7 +7,7 @@
 #include "Posting.h"
 using namespace std;
 
-constexpr int TABLE_SIZE = 211;
+constexpr int TABLE_SIZE = 2111;
 
 class HashMap {
 private:
@@ -33,7 +33,7 @@ public:
     PostingList* insert(const string& word);
     PostingList* get(const string& word) const;
 
-    // search, true if exists
+    // search - true if exists
     bool search(const string& word) const;
 
     // add occurrence doc + pos and insert word if not exists
@@ -41,5 +41,4 @@ public:
 
     void displayAll() const;
 };
-
 #endif
