@@ -1,6 +1,6 @@
-"""
-wl3/engine/__init__.py
-"""
-from wl3.engine.models import RankedResult
+"""wl3.engine — QueryEngine and the structures it returns."""
 
-__all__ = ["RankedResult"]
+from wl3.engine.models import RankedResult
+from wl3.engine.query_engine import QueryEngine, parse_ranking_mode
+
+__all__ = ["QueryEngine", "RankedResult", "parse_ranking_mode"]

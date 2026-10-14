@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from contextlib import contextmanager
 from dataclasses import asdict, is_dataclass
 from datetime import datetime, timezone
 from typing import Any, Callable
@@ -33,10 +34,20 @@ class SQLiteCache:
 
         self._initialize_database()
 
-    def _connect(self) -> sqlite3.Connection:
-        """Create a SQLite connection."""
+    @contextmanager
+    def _connect(self):
+        """Yield a SQLite connection that is committed AND closed afterwards.
 
-        return sqlite3.connect(self.db_path)
+        ``with sqlite3.connect(...)`` only commits/rolls back; it never closes
+        the connection.  On Windows the leaked handle keeps the database file
+        locked (the file cannot be deleted or replaced), so close explicitly.
+        """
+        connection = sqlite3.connect(self.db_path)
+        try:
+            with connection:          # commit on success, rollback on error
+                yield connection
+        finally:
+            connection.close()
 
     def _initialize_database(self) -> None:
         """
