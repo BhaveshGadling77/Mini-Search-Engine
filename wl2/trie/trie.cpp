@@ -3,6 +3,7 @@
 #include"trie.h"
 #include<string>
 #include<vector>
+#include <unordered_set>
 
 using namespace std;
 
@@ -83,3 +84,23 @@ vector<string> Trie::searchForSuffix(string word){
     return result;
 }
 
+vector<string> Trie::searchForWildCard(string prefix, string suffix){
+    reverseWord(suffix);
+    vector<string> pre = searchForPrefix(prefix);
+    vector<string> suf = searchForSuffix(suffix);
+    unordered_set<string> p;
+    unordered_set<string> s;
+    for(string str: pre){
+        p.insert(str);
+    }
+    for(string str: suf){
+        s.insert(str);
+    }
+    vector<string> result;
+    for(auto &word: p){
+        if(s.find(word) != s.end()){
+            result.push_back(word);
+        }
+    }
+    return result;
+}

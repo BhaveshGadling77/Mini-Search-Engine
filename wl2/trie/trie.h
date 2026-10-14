@@ -29,6 +29,7 @@ class Trie{
         void insertReversed(string word);
         vector<string> searchForSuffix(string word);
         vector<string> searchForPrefix(string word);
+        vector<string> searchForWildCard(string prefix, string suffix);
         TrieNode* search(string word);
         void deleteWord(string word);
         vector<string> getResults(string word);
