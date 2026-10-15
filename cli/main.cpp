@@ -1,5 +1,5 @@
-#include "../wl2/Inverted_Index/CorpusReader.h"
-#include "../wl2/Pos_Inverted_Index/query_parser.h"
+#include "CorpusReader.h"
+#include "query_parser.h"
 #include <algorithm>
 #include <cctype>
 #include <cmath>
@@ -12,6 +12,20 @@ static std::string lowercase(std::string value) {
     for (char &c : value)
         c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
     return value;
+}
+
+static std::string sanitize_for_terminal(const std::string &s) {
+    std::string out;
+    out.reserve(s.size());
+    for (unsigned char ch : s) {
+        if (ch == '\n' || ch == '\r' || ch == '\t')
+            out.push_back(static_cast<char>(ch));
+        else if (ch >= 0x20 && ch < 0x7F)
+            out.push_back(static_cast<char>(ch));
+        else
+            out.push_back('?');
+    }
+    return out;
 }
 
 static std::string displayTitle(const DocSnippetData &doc) {
@@ -31,9 +45,9 @@ static std::string displayTitle(const DocSnippetData &doc) {
 
 static std::string relevantSnippet(const std::string &text,
                                    const std::unordered_map<std::string, int> &queryTerms) {
-    constexpr size_t width = 240;
+    constexpr size_t width = 180;
     if (text.size() <= width)
-        return text;
+        return sanitize_for_terminal(text);
     const std::string folded = lowercase(text);
     size_t match = std::string::npos;
     for (const auto &term : queryTerms) {
@@ -53,11 +67,31 @@ static std::string relevantSnippet(const std::string &text,
         if (boundary != std::string::npos && boundary > end - 20)
             end = boundary;
     }
-    return (start ? "…" : "") + text.substr(start, end - start) + (end < text.size() ? "…" : "");
+    std::string snippet = (start ? "…" : "") + text.substr(start, end - start) + (end < text.size() ? "…" : "");
+    return sanitize_for_terminal(snippet);
+}
+
+static void print_wrapped(const std::string &s, size_t width = 80) {
+    std::string clean = sanitize_for_terminal(s);
+    size_t i = 0;
+    while (i < clean.size()) {
+        size_t end = std::min(i + width, clean.size());
+        if (end < clean.size()) {
+            size_t boundary = clean.rfind(' ', end);
+            if (boundary != std::string::npos && boundary > i + width / 2)
+                end = boundary;
+        }
+        std::cout << clean.substr(i, end - i);
+        i = end;
+        while (i < clean.size() && clean[i] == ' ')
+            ++i;
+        if (i < clean.size())
+            std::cout << "\n";
+    }
 }
 
 int main(int argc, char **argv) {
-    const std::string corpus = argc > 1 ? argv[1] : "data/crawler.json";
+    const std::string corpus = argc > 1 ? argv[1] : "/home/bhavesh/Mini-Search-Engine/data/crawler.json";
     auto docs = readDocuments(corpus);
     if (docs.empty()) {
         std::cerr << "No documents loaded from " << corpus << "\n";
@@ -103,11 +137,13 @@ int main(int argc, char **argv) {
                 const auto &d = snippets.at(ids[i]);
                 const auto &queryTerms = result.candidates.at(ids[i]);
                 std::cout << i + 1 << ". [" << ids[i] << "] " << displayTitle(d)
-                          << "  score=" << hits[i].score << "\n   " << d.url << "\n   "
-                          << relevantSnippet(d.text, queryTerms) << "\n";
+                          << "  score=" << hits[i].score << "\n   " << d.url << "\n";
+                print_wrapped(relevantSnippet(d.text, queryTerms), 80);
+                std::cout << "\n";
             }
         } catch (const std::exception &e) {
             std::cout << "Query error: " << e.what() << "\n";
         }
     }
+    return 0;
 }
