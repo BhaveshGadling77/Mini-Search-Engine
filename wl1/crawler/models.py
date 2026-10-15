@@ -6,6 +6,10 @@ frozen interface contract between worklets.
 
 The ``doc_id`` is a sequential identifier formatted like ``"000XXX"``
 (e.g. ``"000001"``) where XXX is the running sequence.
+
+``token_segments`` preserves section boundaries from the parsed HTML so
+that phrase-query matching can avoid false positives across structurally
+separate page sections (e.g. nav, footer columns).
 """
 
 from __future__ import annotations
@@ -21,12 +25,17 @@ class Document:
 
     All fields are truly immutable: ``tokens`` is a tuple (not list) and
     ``meta`` is copied on construction to prevent external mutation.
+
+    ``token_segments`` is a tuple of tuples, where each inner tuple
+    holds the tokens from one contiguous block-level section of the HTML.
+    Phrase queries should only match within a single segment.
     """
 
     doc_id: str
     url: str
     text: str
     tokens: tuple[str, ...]
+    token_segments: tuple[tuple[str, ...], ...]
     meta: dict[str, Any]
 
     def to_dict(self) -> dict[str, Any]:
@@ -36,6 +45,7 @@ class Document:
             "url": self.url,
             "text": self.text,
             "tokens": list(self.tokens),
+            "token_segments": [list(seg) for seg in self.token_segments],
             "meta": self.meta,
         }
 
