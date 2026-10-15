@@ -388,26 +388,26 @@ namespace
 
         size_t total_tokens = 0;
 
-        for (const Document& doc : *g_documents)
-        {
-            g_docs_by_id[doc.docId] = &doc;
-            auto& counts = g_term_counts[doc.docId];
+for (const Document& doc : *g_documents)
+{
+    g_docs_by_id[doc.docId] = &doc;
+    auto& counts = g_term_counts[doc.docId];
 
-            for (const string& raw : doc.tokens)
-            {
-                if (raw == BOUNDARY_TOKEN)
-                continue;
+    for (const string& raw : doc.tokens)
+    {
+        if (raw == BOUNDARY_TOKEN)
+            continue;
 
-                string term = normalize(raw);
+        string term = normalize(raw);
 
-                    if (term.empty())
-                    continue;
+        if (term.empty())
+            continue;
 
-                ++counts[term];
-                g_vocabulary.insert(term);
-                ++total_tokens;
-            }
-        }
+        ++counts[term];
+        g_vocabulary.insert(term);
+        ++total_tokens;
+    }
+}
 
         g_total_docs = static_cast<int>(g_docs_by_id.size());
 
