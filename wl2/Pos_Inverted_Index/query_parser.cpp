@@ -206,19 +206,35 @@ class QueryParser {
         if (phrase_terms.empty() || !docs)
             return {};
         std::vector<std::vector<std::string>> alternatives;
-        for (const auto &word : phrase_terms)
-            alternatives.push_back(expand(word));
+        for (const auto &word : phrase_terms) {
+            if (word.find('*') == std::string::npos)
+                alternatives.push_back({word});
+            else
+                alternatives.push_back(expand(word));
+        }
         if (std::any_of(alternatives.begin(), alternatives.end(),
                         [](const auto &a) { return a.empty(); }))
             return {};
         IdSet result;
         for (const auto &doc : *docs) {
-            if (doc.tokens.size() < phrase_terms.size())
+            // Document::tokens has stop words removed by Worklet 1, so it cannot
+            // preserve exact phrase positions. Prefer the original page text.
+            // Hand-built/test documents may only provide tokens, so retain that
+            // as a fallback.
+            const auto document_terms = split_words(doc.text.empty() ? [&doc]() {
+                std::string joined;
+                for (const auto &token : doc.tokens) {
+                    if (!joined.empty()) joined += ' ';
+                    joined += token;
+                }
+                return joined;
+            }() : doc.text);
+            if (document_terms.size() < phrase_terms.size())
                 continue;
-            for (size_t start = 0; start + phrase_terms.size() <= doc.tokens.size(); ++start) {
+            for (size_t start = 0; start + phrase_terms.size() <= document_terms.size(); ++start) {
                 bool match = true;
                 for (size_t offset = 0; offset < phrase_terms.size() && match; ++offset) {
-                    const std::string token = normalize(doc.tokens[start + offset]);
+                    const std::string &token = document_terms[start + offset];
                     match = std::find(alternatives[offset].begin(), alternatives[offset].end(),
                                       token) != alternatives[offset].end();
                 }
