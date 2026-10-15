@@ -12,6 +12,7 @@
 
 namespace
 {
+    constexpr const char* BOUNDARY_TOKEN = "__section_boundary__";
     const vector<Document>* g_documents = nullptr;
     Trie* g_prefix_trie = nullptr;
     Trie* g_reversed_suffix_trie = nullptr;
@@ -254,7 +255,7 @@ namespace
 
                 for (size_t j = 0; j < terms.size(); ++j)
                 {
-                    if (normalize(tokens[i + j]) != terms[j])
+                    if (tokens[i + j] == BOUNDARY_TOKEN || normalize(tokens[i + j]) != terms[j])
                     {
                         matched = false;
                         break;
@@ -394,9 +395,12 @@ namespace
 
             for (const string& raw : doc.tokens)
             {
+                if (raw == BOUNDARY_TOKEN)
+                continue;
+
                 string term = normalize(raw);
 
-                if (term.empty())
+                    if (term.empty())
                     continue;
 
                 ++counts[term];
