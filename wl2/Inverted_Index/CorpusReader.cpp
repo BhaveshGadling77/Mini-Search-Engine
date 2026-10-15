@@ -77,6 +77,20 @@ static vector<string> extractTokens(const string& text, size_t objStart, size_t 
     return tokens;
 }
 
+static string extractString(const string& text, size_t start, size_t end, const string& key) {
+    size_t keyPos = text.find("\"" + key + "\"", start);
+    if (keyPos == string::npos || keyPos > end) return "";
+    size_t quote = text.find('"', text.find(':', keyPos) + 1);
+    if (quote == string::npos || quote > end) return "";
+    string value;
+    for (size_t i = quote + 1; i < end; ++i) {
+        if (text[i] == '"') break;
+        if (text[i] == '\\' && i + 1 < end) { ++i; value += text[i]; }
+        else value += text[i];
+    }
+    return value;
+}
+
 vector<Document> readDocuments(const string& filename) {
     vector<Document> docs;
 
@@ -101,7 +115,15 @@ vector<Document> readDocuments(const string& filename) {
 
             Document doc;
             doc.docId = extractDocId(text, objStart, objEnd);
+            doc.title = extractString(text, objStart, objEnd, "title");
+            doc.url = extractString(text, objStart, objEnd, "url");
+            doc.text = extractString(text, objStart, objEnd, "text");
             doc.tokens = extractTokens(text, objStart, objEnd);
+            if (doc.tokens.empty() && !doc.text.empty()) {
+                istringstream words(doc.text);
+                string word;
+                while (words >> word) doc.tokens.push_back(word);
+            }
 
             if (doc.docId != -1) {
                 docs.push_back(doc);

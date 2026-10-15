@@ -7,6 +7,9 @@ using namespace std;
 
 struct Document {
     int docId;
+    string title;
+    string url;
+    string text;
     vector<string> tokens;
 };
 
