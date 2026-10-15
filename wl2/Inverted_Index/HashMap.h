@@ -40,5 +40,7 @@ public:
     void update(const string& word, int docId, int pos);
 
     void displayAll() const;
+
+    void sortAllPostingLists();
 };
 #endif

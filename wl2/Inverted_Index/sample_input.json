@@ -1,6 +1,6 @@
 [
   {
-    "doc_id": 1,
+    "doc_id": 2,
     "url": "https://example.com/page1",
     "text": "crawl rank page algorithm relevance result engine algorithm web rank query result user document score crawl page relevance index search the crawl index web page algorithm rank search document score user result score relevance result engine document web index search page rank the query crawl user algorithm system data",
     "tokens": [
@@ -14,7 +14,7 @@
     }
   },
   {
-    "doc_id": 2,
+    "doc_id": 1,
     "url": "https://example.com/page2",
     "text": "the hunts over runs dog fast brown lazy mouse lazy the chases runs over dog fast fox brown quick cat data system",
     "tokens": [

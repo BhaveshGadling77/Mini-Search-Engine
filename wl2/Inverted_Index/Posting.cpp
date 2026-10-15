@@ -1,11 +1,19 @@
 
 #include "Posting.h"
 #include <iostream>
+#include <algorithm>
 using namespace std;
 
+/*
 // Constructor
 PostingList::PostingList() {
-    // Vector is initially empty
+} */
+
+void PostingList::sortPostings() {
+    sort(postings.begin(), postings.end(),
+         [](const Posting& a, const Posting& b) {
+             return a.docId < b.docId;
+         });
 }
 
 // Add an occurrence of a word
@@ -26,7 +34,7 @@ void PostingList::addOccurrence(int docId, int pos) {
     newPost.positions.push_back(pos);
     newPost.frequency = 1;
 
-    // Find the correct position by docId
+   /* // Find the correct position by docId
     auto it = postings.begin();
 
     while (it != postings.end() && it->docId < docId) {
@@ -35,6 +43,8 @@ void PostingList::addOccurrence(int docId, int pos) {
 
     // Insert in ascending order
     postings.insert(it, newPost);
+    */
+   postings.push_back(newPost);
 }
 
 const vector<Posting>& PostingList::get_all() const {

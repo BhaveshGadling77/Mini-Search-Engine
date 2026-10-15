@@ -169,13 +169,16 @@ private:
     vector<Posting> postings;
 
 public:
-    PostingList();
+    //PostingList();
 
     void addOccurrence(int docId, int pos);
 
     const vector<Posting>& get_all() const;
 
     void print() const;
+
+    //to sort postings by document ID
+    void sortPostings();
 };
 
 #endif

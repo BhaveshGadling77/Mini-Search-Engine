@@ -1,4 +1,5 @@
 #include "Inverted_Index.h"
+#include "Posting.h"
 
 // Build the positional inverted index
 void Inverted_Index::build(const vector<Document>& docs) {
@@ -13,6 +14,7 @@ void Inverted_Index::build(const vector<Document>& docs) {
             );
         }
     }
+    index.sortAllPostingLists();
 }
 
 // Display the complete inverted index

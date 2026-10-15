@@ -124,6 +124,7 @@ void DocumentHashMap::displayAll() const {
 
         while (current != nullptr) {
             cout << "Document ID: " << current->key << endl;
+            cout << "Meta:" << endl;
             cout << "URL: " << current->value.url << endl;
 
             cout << "Crawled At: "

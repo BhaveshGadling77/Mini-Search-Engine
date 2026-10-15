@@ -118,3 +118,14 @@ void HashMap::rehash() {
         }
     }
 }
+
+void HashMap::sortAllPostingLists() {
+    for (size_t i = 0; i < table.size(); i++) {
+        Entry* current = table[i];
+
+        while (current != nullptr) {
+            current->value->sortPostings();
+            current = current->next;
+        }
+    }
+}
