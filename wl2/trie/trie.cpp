@@ -1,4 +1,3 @@
-#pragma once
 #include<iostream>
 #include"trie.h"
 #include<string>
@@ -20,35 +19,91 @@ void Trie::reverseWord(string &word){
     }
 }
 
+
+void Trie::insertInto(string word, TrieNode* start){
+    if(word.empty()) {
+        return;
+    }
+    TrieNode* node = start;
+    int i = 0;                                
+    int n = word.size();
+
+    while(i < n){
+        int idx = word[i] - 'a';
+        TrieNode* child = node->children[idx];
+
+        
+        if(child == nullptr){
+            TrieNode* leaf = new TrieNode(word.substr(i));
+            leaf->endOfWord = true;
+            node->children[idx] = leaf;
+            return;
+        }
+
+        int labelLen = child->label.size();
+        int j = 0;
+        while(j < labelLen && i + j < n && child->label[j] == word[i + j]){
+            j++;
+        }
+
+        if(j == labelLen){
+            node = child;
+            i += j;
+            continue;
+        }
+
+        TrieNode* mid = new TrieNode(child->label.substr(0, j));
+        child->label = child->label.substr(j);
+        mid->children[child->label[0] - 'a'] = child;
+        node->children[idx] = mid;
+        i += j;
+
+        if(i == n){
+            mid->endOfWord = true;              
+        }
+        else{
+            TrieNode* leaf = new TrieNode(word.substr(i));
+            leaf->endOfWord = true;
+            mid->children[word[i] - 'a'] = leaf;
+        }
+        return;
+    }
+    node->endOfWord = true;
+}
+
 void Trie::insert(string word){
     int n = word.size();
     for(int i = 0; i <= n - k; i++){
         string sub = word.substr(i, k);
         kgramIndex[sub].insert(word);
     }
-    TrieNode* node = root;
-    for(char c : word){
-        int index = c - 'a';
-        if(node->children[index] ==  nullptr){
-            node->children[index] = new TrieNode();
-        }
-        node = node->children[index];
-    }
-    node->endOfWord = true;
+    insertInto(word, root);
 }
 
 void Trie::insertReversed(string word){
     reverseWord(word);
-    insert(word);
+    insertInto(word, revRoot);      
 }
-TrieNode* Trie::search(string word){
-    TrieNode* node = root;
-    for(char c : word){
-        int index = c - 'a';
-        if(node->children[index] == nullptr){
+
+TrieNode* Trie::search(string word, TrieNode* start, string &built){
+    TrieNode* node = start;
+    built = "";
+    int i = 0;
+    int n = word.size();
+    while(i < n){
+        TrieNode* child = node->children[word[i] - 'a'];
+        if(child == nullptr){
             return nullptr;
         }
-        node = node->children[index];
+        int labelLen = child->label.size();
+        for(int j = 0; j < labelLen && i + j < n; j++){
+            if(child->label[j] != word[i + j]){
+                return nullptr;
+            }
+        }
+        built += child->label;
+        i += labelLen;
+        node = child;
     }
     return node;
 }
@@ -59,32 +114,33 @@ void Trie::backTrackTrie(vector<string> & results, TrieNode* node, string &w){
     }
     for(int i = 0; i < 26; i++){
         if(node->children[i] != nullptr){
-            w.push_back(i + 'a');
-            backTrackTrie(results, node->children[i], w);
-            w.pop_back();
+            TrieNode* child = node->children[i];
+            w += child->label;
+            backTrackTrie(results, child, w);
+            w.erase(w.size() - child->label.size());
         }
     }
 }
 
-vector<string> Trie::getResults(string word){
-    TrieNode* r = search(word);
+vector<string> Trie::getResults(string word, TrieNode* start){
+    string w;
+    TrieNode* r = search(word, start, w);
     if(r == nullptr){
         return {};
     }
     vector<string> results;
-    string w = word;
     backTrackTrie(results, r, w);
     return results;
 }
 
 vector<string> Trie::searchForPrefix(string word){
-    vector<string> result = getResults(word);
+    vector<string> result = getResults(word, root);
     return result;
 }
 
 vector<string> Trie::searchForSuffix(string word){
     reverseWord(word);
-    vector<string> result = getResults(word);
+    vector<string> result = getResults(word, revRoot);
     for(int i = 0; i < result.size(); i++){
         reverseWord(result[i]);
     }
@@ -112,27 +168,49 @@ vector<string> Trie::searchForWildCard(string prefix, string suffix){
 }
 
 vector<string> Trie::searchForInfixWildCard(string word){
-    if(word.size() < k){
-        return {};
-    }
     int n = word.size();
     vector<string> result;
-    unordered_set <string> s1;
-    unordered_set<string> res;
+
+    if(n < k){
+        vector<string> all = getResults("", root);
+        for(string &w : all){
+            if(w.find(word) != string::npos){
+                result.push_back(w);
+            }
+        }
+        return result;
+    }
+
+    unordered_set<string> cur;
     for(int i = 0; i <= n - k; i++){
-        string str = word.substr(i,k);
-        if(s1.empty() == true){
-            s1 = kgramIndex[str];
-            res = s1;
+        string gram = word.substr(i, k);
+        auto it = kgramIndex.find(gram);
+        if(it == kgramIndex.end()){
+            return {};                  
+        }
+
+        if(i == 0){
+            cur = it->second;
         }
         else{
-            unordered_set<string> s2 = kgramIndex[str];
-            set_intersection(s1.begin(), s1.end(), s2.begin(), s2.end(), inserter(res, res.begin()));
-            s1 = res;
+            unordered_set<string> next;
+            for(const string &w : cur){
+                if(it->second.count(w)){
+                    next.insert(w);
+                }
+            }
+            cur = std::move(next);
+        }
+
+        if(cur.empty()){
+            return {};
         }
     }
-    for(auto &p: res){
-        result.push_back(p);
+
+    for(const string &w : cur){
+        if(w.find(word) != string::npos){
+            result.push_back(w);
+        }
     }
     return result;
 }
