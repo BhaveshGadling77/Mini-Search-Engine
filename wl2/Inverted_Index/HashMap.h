@@ -3,41 +3,41 @@
 
 #include <string>
 #include <vector>
-//#include <iostream>
+// #include <iostream>
 #include "Posting.h"
 using namespace std;
 
 constexpr int TABLE_SIZE = 211;
 
 class HashMap {
-private:
+  private:
     // Each bucket stores the head of a linked list
     struct Entry {
         string key;
-        PostingList* value;
-        Entry* next;
+        PostingList *value;
+        Entry *next;
     };
 
-    vector<Entry*> table;
+    vector<Entry *> table;
     int entryCount;
 
-    int hashFunction(const string& key) const;
+    int hashFunction(const string &key) const;
 
     // Increase table size when it becomes too full
     void rehash();
 
-public:
+  public:
     HashMap();
     ~HashMap();
 
-    PostingList* insert(const string& word);
-    PostingList* get(const string& word) const;
+    PostingList *insert(const string &word);
+    PostingList *get(const string &word) const;
 
     // search, true if exists
-    bool search(const string& word) const;
+    bool search(const string &word) const;
 
     // add occurrence doc + pos and insert word if not exists
-    void update(const string& word, int docId, int pos);
+    void update(const string &word, int docId, int pos);
 
     void displayAll() const;
 };

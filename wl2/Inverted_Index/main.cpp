@@ -1,6 +1,6 @@
-#include <iostream>
-#include "HashMap.h"
 #include "CorpusReader.h"
+#include "HashMap.h"
+#include <iostream>
 using namespace std;
 
 int main() {
@@ -11,9 +11,9 @@ int main() {
 
     HashMap index;
 
-    //positional inverted index
+    // positional inverted index
     for (size_t d = 0; d < docs.size(); d++) {
-        Document& doc = docs[d];
+        Document &doc = docs[d];
         for (size_t pos = 0; pos < doc.tokens.size(); pos++) {
             index.update(doc.tokens[pos], doc.docId, (int)pos);
         }
@@ -22,15 +22,16 @@ int main() {
     cout << "===== POSITIONAL INVERTED INDEX =====" << endl << endl;
     index.displayAll();
 
-    //sample output
+    // sample output
     cout << "search(\"fox\") = " << index.search("fox") << endl;
     cout << "search(\"notaword\") = " << index.search("notaword") << endl;
 
-    //user inputs
+    // user inputs
     cout << endl << "anshul Enter a word to look up (or 'exit' to quit):" << endl;
     string word;
     while (cout << "> " && cin >> word) {
-        if (word == "exit") break;
+        if (word == "exit")
+            break;
 
         if (index.search(word)) {
             cout << "Word: " << word << endl;

@@ -1,12 +1,12 @@
-#include<iostream>
-#include<string>
-#include<vector>
 #include "trie.h"
+#include <iostream>
+#include <string>
+#include <vector>
 
 using namespace std;
 
-void printResults(vector<string> results){
-    for(string s : results){
+void printResults(vector<string> results) {
+    for (string s : results) {
         cout << s << " ";
     }
     cout << endl;
@@ -16,8 +16,8 @@ int main() {
     Trie prefixTrie;
     Trie suffixTrie;
 
-    vector <string> words = {"car", "card", "care", "cat", "dog", "apple"};
-    for(string word: words){
+    vector<string> words = {"car", "card", "care", "cat", "dog", "apple"};
+    for (string word : words) {
         prefixTrie.insert(word);
         suffixTrie.insertReversed(word);
     }
@@ -45,4 +45,3 @@ int main() {
 
     return 0;
 }
-

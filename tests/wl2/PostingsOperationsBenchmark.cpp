@@ -13,25 +13,28 @@ using Clock = std::chrono::steady_clock;
 constexpr int list_size = 1000;
 constexpr int iterations = 20;
 
-PostingList make_posting_list(const std::vector<int>& doc_ids) {
+PostingList make_posting_list(const std::vector<int> &doc_ids) {
     PostingList list;
-    for (int doc_id : doc_ids) list.addOccurrence(doc_id, 0);
+    for (int doc_id : doc_ids)
+        list.addOccurrence(doc_id, 0);
     return list;
 }
 
 template <typename Operation>
-double average_microseconds(Operation operation, std::uint64_t& checksum) {
+double average_microseconds(Operation operation, std::uint64_t &checksum) {
     const auto start = Clock::now();
     for (int i = 0; i < iterations; ++i) {
         const PostingList result = operation();
         checksum += result.get_all().size();
-        if (!result.get_all().empty()) checksum += static_cast<std::uint64_t>(result.get_all().front().docId);
+        if (!result.get_all().empty())
+            checksum += static_cast<std::uint64_t>(result.get_all().front().docId);
     }
-    const auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(Clock::now() - start);
+    const auto elapsed =
+        std::chrono::duration_cast<std::chrono::microseconds>(Clock::now() - start);
     return static_cast<double>(elapsed.count()) / iterations;
 }
 
-void benchmark_case(const std::string& name, const PostingList& a, const PostingList& b) {
+void benchmark_case(const std::string &name, const PostingList &a, const PostingList &b) {
     const std::vector<int> normal_result =
         PostingsOperations::extract_doc_ids(PostingsOperations::intersect(a, b));
     const std::vector<int> skip_result =
@@ -46,8 +49,8 @@ void benchmark_case(const std::string& name, const PostingList& a, const Posting
     checksum += PostingsOperations::intersect(a, b).get_all().size();
     checksum += PostingsOperations::intersect_with_skips(a, b).get_all().size();
 
-    const double normal_us = average_microseconds(
-        [&] { return PostingsOperations::intersect(a, b); }, checksum);
+    const double normal_us =
+        average_microseconds([&] { return PostingsOperations::intersect(a, b); }, checksum);
     const double skip_us = average_microseconds(
         [&] { return PostingsOperations::intersect_with_skips(a, b); }, checksum);
 
@@ -55,8 +58,7 @@ void benchmark_case(const std::string& name, const PostingList& a, const Posting
               << ", matches=" << normal_result.size() << ")\n"
               << "  without skip pointers: " << normal_us << " us/op\n"
               << "  with skip pointers:    " << skip_us << " us/op\n"
-              << "  without/with ratio: " << (skip_us == 0.0 ? 0.0 : normal_us / skip_us)
-              << "x\n";
+              << "  without/with ratio: " << (skip_us == 0.0 ? 0.0 : normal_us / skip_us) << "x\n";
     // Keep benchmark results observable to the compiler and make checksum reproducible.
     std::cout << "  checksum: " << checksum << '\n';
 }
@@ -84,7 +86,8 @@ int main() {
         disjoint_a.push_back(i * 2);
         disjoint_b.push_back(i * 2 + 1);
         sparse_a.push_back(i * 2);
-        if (i % 100 == 0) sparse_b.push_back(i * 2);
+        if (i % 100 == 0)
+            sparse_b.push_back(i * 2);
     }
 
     const PostingList dense_left = make_posting_list(dense_a);

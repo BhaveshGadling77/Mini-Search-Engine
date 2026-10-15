@@ -37,7 +37,7 @@ void PostingList::addOccurrence(int docId, int pos) {
     postings.insert(it, newPost);
 }
 
-const vector<Posting>& PostingList::get_all() const {
+const vector<Posting> &PostingList::get_all() const {
     return postings;
 }
 
@@ -46,13 +46,11 @@ void PostingList::print() const {
 
     for (size_t i = 0; i < postings.size(); i++) {
 
-        cout << "    Doc ID: "
-             << postings[i].docId << endl;
+        cout << "    Doc ID: " << postings[i].docId << endl;
 
         cout << "    Positions: [";
 
-        for (size_t j = 0;
-             j < postings[i].positions.size(); j++) {
+        for (size_t j = 0; j < postings[i].positions.size(); j++) {
 
             cout << postings[i].positions[j];
 
@@ -63,7 +61,6 @@ void PostingList::print() const {
 
         cout << "]" << endl;
 
-        cout << "    Frequency: "
-             << postings[i].frequency << endl << endl;
+        cout << "    Frequency: " << postings[i].frequency << endl << endl;
     }
 }

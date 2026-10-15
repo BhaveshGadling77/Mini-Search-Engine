@@ -154,8 +154,8 @@ public:
 #ifndef POSTING_H
 #define POSTING_H
 
-#include <vector>
 #include <iostream>
+#include <vector>
 using namespace std;
 
 struct Posting {
@@ -165,15 +165,15 @@ struct Posting {
 };
 
 class PostingList {
-private:
+  private:
     vector<Posting> postings;
 
-public:
+  public:
     PostingList();
 
     void addOccurrence(int docId, int pos);
 
-    const vector<Posting>& get_all() const;
+    const vector<Posting> &get_all() const;
 
     void print() const;
 };

@@ -1,12 +1,12 @@
-#include <iostream>
-#include <vector>
-#include <string>
-#include <cassert>
-#include <sstream>
-#include <chrono>
-#include <random>
-#include <algorithm>
 #include "../../wl2/boolean_operations/PostingsOperations.h"
+#include <algorithm>
+#include <cassert>
+#include <chrono>
+#include <iostream>
+#include <random>
+#include <sstream>
+#include <string>
+#include <vector>
 
 using namespace std;
 
@@ -14,28 +14,28 @@ using namespace std;
 static int g_passCount = 0;
 static int g_failCount = 0;
 
-#define TEST_ASSERT(cond, msg) \
-    do { \
-        if (!(cond)) { \
-            cerr << "  [FAIL] " << msg << " (line " << __LINE__ << ")" << endl; \
-            g_failCount++; \
-            return; \
-        } \
+#define TEST_ASSERT(cond, msg)                                                                     \
+    do {                                                                                           \
+        if (!(cond)) {                                                                             \
+            cerr << "  [FAIL] " << msg << " (line " << __LINE__ << ")" << endl;                    \
+            g_failCount++;                                                                         \
+            return;                                                                                \
+        }                                                                                          \
     } while (0)
 
-#define RUN_TEST(fn) \
-    do { \
-        cout << "[RUN] " << #fn << "..." << endl; \
-        int beforeFail = g_failCount; \
-        fn(); \
-        if (g_failCount == beforeFail) { \
-            cout << "  [PASS] " << #fn << endl; \
-            g_passCount++; \
-        } \
+#define RUN_TEST(fn)                                                                               \
+    do {                                                                                           \
+        cout << "[RUN] " << #fn << "..." << endl;                                                  \
+        int beforeFail = g_failCount;                                                              \
+        fn();                                                                                      \
+        if (g_failCount == beforeFail) {                                                           \
+            cout << "  [PASS] " << #fn << endl;                                                    \
+            g_passCount++;                                                                         \
+        }                                                                                          \
     } while (0)
 
 // Helper: create a sorted PostingList from a vector of ascending docIds
-static PostingList makeList(const vector<int>& docIds) {
+static PostingList makeList(const vector<int> &docIds) {
     PostingList list;
     for (int id : docIds) {
         list.add(Posting(id, 1, {0}));
@@ -44,19 +44,19 @@ static PostingList makeList(const vector<int>& docIds) {
 }
 
 // Helper: create a PostingList from a vector of Posting objects (must be sorted by docId)
-static PostingList makeListFromPostings(const vector<Posting>& postings) {
+static PostingList makeListFromPostings(const vector<Posting> &postings) {
     PostingList list;
-    for (const auto& p : postings) {
+    for (const auto &p : postings) {
         list.add(p);
     }
     return list;
 }
 
-static vector<int> getDocIds(const PostingList& list) {
+static vector<int> getDocIds(const PostingList &list) {
     return PostingsOperations::extract_doc_ids(list);
 }
 
-static bool checkDocIds(const PostingList& list, const vector<int>& expected) {
+static bool checkDocIds(const PostingList &list, const vector<int> &expected) {
     vector<int> actual = getDocIds(list);
     return actual == expected;
 }
@@ -69,9 +69,11 @@ void test_baseline_example() {
     PostingList b = makeList({2, 4, 5, 7});
 
     TEST_ASSERT(checkDocIds(PostingsOperations::intersect(a, b), {2, 4, 7}), "Baseline AND failed");
-    TEST_ASSERT(checkDocIds(PostingsOperations::union_(a, b), {1, 2, 4, 5, 7}), "Baseline OR failed");
+    TEST_ASSERT(checkDocIds(PostingsOperations::union_(a, b), {1, 2, 4, 5, 7}),
+                "Baseline OR failed");
     TEST_ASSERT(checkDocIds(PostingsOperations::difference(a, b), {1}), "Baseline NOT failed");
-    TEST_ASSERT(checkDocIds(PostingsOperations::intersect_with_skips(a, b), {2, 4, 7}), "Baseline skip AND failed");
+    TEST_ASSERT(checkDocIds(PostingsOperations::intersect_with_skips(a, b), {2, 4, 7}),
+                "Baseline skip AND failed");
 }
 
 // Test 1: Both lists empty
@@ -82,7 +84,8 @@ void test_1_both_lists_empty() {
     TEST_ASSERT(PostingsOperations::intersect(a, b).empty(), "AND of empty lists should be empty");
     TEST_ASSERT(PostingsOperations::union_(a, b).empty(), "OR of empty lists should be empty");
     TEST_ASSERT(PostingsOperations::difference(a, b).empty(), "NOT of empty lists should be empty");
-    TEST_ASSERT(PostingsOperations::intersect_with_skips(a, b).empty(), "Skip AND of empty lists should be empty");
+    TEST_ASSERT(PostingsOperations::intersect_with_skips(a, b).empty(),
+                "Skip AND of empty lists should be empty");
 }
 
 // Test 2: First list empty
@@ -91,9 +94,12 @@ void test_2_first_list_empty() {
     PostingList b = makeList({1, 3, 5});
 
     TEST_ASSERT(PostingsOperations::intersect(a, b).empty(), "AND with empty left should be empty");
-    TEST_ASSERT(checkDocIds(PostingsOperations::union_(a, b), {1, 3, 5}), "OR with empty left should equal right");
-    TEST_ASSERT(PostingsOperations::difference(a, b).empty(), "NOT with empty left should be empty");
-    TEST_ASSERT(PostingsOperations::intersect_with_skips(a, b).empty(), "Skip AND with empty left should be empty");
+    TEST_ASSERT(checkDocIds(PostingsOperations::union_(a, b), {1, 3, 5}),
+                "OR with empty left should equal right");
+    TEST_ASSERT(PostingsOperations::difference(a, b).empty(),
+                "NOT with empty left should be empty");
+    TEST_ASSERT(PostingsOperations::intersect_with_skips(a, b).empty(),
+                "Skip AND with empty left should be empty");
 }
 
 // Test 3: Second list empty
@@ -101,10 +107,14 @@ void test_3_second_list_empty() {
     PostingList a = makeList({2, 4, 6});
     PostingList b;
 
-    TEST_ASSERT(PostingsOperations::intersect(a, b).empty(), "AND with empty right should be empty");
-    TEST_ASSERT(checkDocIds(PostingsOperations::union_(a, b), {2, 4, 6}), "OR with empty right should equal left");
-    TEST_ASSERT(checkDocIds(PostingsOperations::difference(a, b), {2, 4, 6}), "NOT with empty right should equal left");
-    TEST_ASSERT(PostingsOperations::intersect_with_skips(a, b).empty(), "Skip AND with empty right should be empty");
+    TEST_ASSERT(PostingsOperations::intersect(a, b).empty(),
+                "AND with empty right should be empty");
+    TEST_ASSERT(checkDocIds(PostingsOperations::union_(a, b), {2, 4, 6}),
+                "OR with empty right should equal left");
+    TEST_ASSERT(checkDocIds(PostingsOperations::difference(a, b), {2, 4, 6}),
+                "NOT with empty right should equal left");
+    TEST_ASSERT(PostingsOperations::intersect_with_skips(a, b).empty(),
+                "Skip AND with empty right should be empty");
 }
 
 // Test 4: Disjoint lists
@@ -112,12 +122,15 @@ void test_4_disjoint_lists() {
     PostingList a = makeList({1, 3, 5, 7});
     PostingList b = makeList({2, 4, 6, 8});
 
-    TEST_ASSERT(PostingsOperations::intersect(a, b).empty(), "AND of disjoint lists should be empty");
-    TEST_ASSERT(checkDocIds(PostingsOperations::union_(a, b), {1, 2, 3, 4, 5, 6, 7, 8}), "OR of disjoint lists failed");
-    TEST_ASSERT(checkDocIds(PostingsOperations::difference(a, b), {1, 3, 5, 7}), "NOT of disjoint lists should equal left");
-    TEST_ASSERT(PostingsOperations::intersect_with_skips(a, b).empty(), "Skip AND of disjoint lists should be empty");
+    TEST_ASSERT(PostingsOperations::intersect(a, b).empty(),
+                "AND of disjoint lists should be empty");
+    TEST_ASSERT(checkDocIds(PostingsOperations::union_(a, b), {1, 2, 3, 4, 5, 6, 7, 8}),
+                "OR of disjoint lists failed");
+    TEST_ASSERT(checkDocIds(PostingsOperations::difference(a, b), {1, 3, 5, 7}),
+                "NOT of disjoint lists should equal left");
+    TEST_ASSERT(PostingsOperations::intersect_with_skips(a, b).empty(),
+                "Skip AND of disjoint lists should be empty");
 }
-
 
 // Test 5: Identical lists
 
@@ -125,12 +138,15 @@ void test_5_identical_lists() {
     PostingList a = makeList({10, 20, 30});
     PostingList b = makeList({10, 20, 30});
 
-    TEST_ASSERT(checkDocIds(PostingsOperations::intersect(a, b), {10, 20, 30}), "AND of identical lists failed");
-    TEST_ASSERT(checkDocIds(PostingsOperations::union_(a, b), {10, 20, 30}), "OR of identical lists failed");
-    TEST_ASSERT(PostingsOperations::difference(a, b).empty(), "NOT of identical lists should be empty");
-    TEST_ASSERT(checkDocIds(PostingsOperations::intersect_with_skips(a, b), {10, 20, 30}), "Skip AND of identical lists failed");
+    TEST_ASSERT(checkDocIds(PostingsOperations::intersect(a, b), {10, 20, 30}),
+                "AND of identical lists failed");
+    TEST_ASSERT(checkDocIds(PostingsOperations::union_(a, b), {10, 20, 30}),
+                "OR of identical lists failed");
+    TEST_ASSERT(PostingsOperations::difference(a, b).empty(),
+                "NOT of identical lists should be empty");
+    TEST_ASSERT(checkDocIds(PostingsOperations::intersect_with_skips(a, b), {10, 20, 30}),
+                "Skip AND of identical lists failed");
 }
-
 
 // Test 6: Subset relationships
 
@@ -138,13 +154,16 @@ void test_6_subset_relationships() {
     PostingList a = makeList({1, 2, 3, 4, 5, 6});
     PostingList b = makeList({2, 4, 6});
 
-    TEST_ASSERT(checkDocIds(PostingsOperations::intersect(a, b), {2, 4, 6}), "A AND B (B subset) should equal B");
-    TEST_ASSERT(checkDocIds(PostingsOperations::union_(a, b), {1, 2, 3, 4, 5, 6}), "A OR B (B subset) should equal A");
-    TEST_ASSERT(checkDocIds(PostingsOperations::difference(a, b), {1, 3, 5}), "A - B should equal {1, 3, 5}");
+    TEST_ASSERT(checkDocIds(PostingsOperations::intersect(a, b), {2, 4, 6}),
+                "A AND B (B subset) should equal B");
+    TEST_ASSERT(checkDocIds(PostingsOperations::union_(a, b), {1, 2, 3, 4, 5, 6}),
+                "A OR B (B subset) should equal A");
+    TEST_ASSERT(checkDocIds(PostingsOperations::difference(a, b), {1, 3, 5}),
+                "A - B should equal {1, 3, 5}");
     TEST_ASSERT(PostingsOperations::difference(b, a).empty(), "B - A (B subset) should be empty");
-    TEST_ASSERT(checkDocIds(PostingsOperations::intersect_with_skips(a, b), {2, 4, 6}), "Skip A AND B failed");
+    TEST_ASSERT(checkDocIds(PostingsOperations::intersect_with_skips(a, b), {2, 4, 6}),
+                "Skip A AND B failed");
 }
-
 
 // Test 7: Single-element lists
 
@@ -154,18 +173,23 @@ void test_7_single_element_lists() {
     PostingList c = makeList({99});
 
     // Matching singletons
-    TEST_ASSERT(checkDocIds(PostingsOperations::intersect(a, b), {42}), "Matching singletons AND failed");
-    TEST_ASSERT(checkDocIds(PostingsOperations::union_(a, b), {42}), "Matching singletons OR failed");
+    TEST_ASSERT(checkDocIds(PostingsOperations::intersect(a, b), {42}),
+                "Matching singletons AND failed");
+    TEST_ASSERT(checkDocIds(PostingsOperations::union_(a, b), {42}),
+                "Matching singletons OR failed");
     TEST_ASSERT(PostingsOperations::difference(a, b).empty(), "Matching singletons NOT failed");
-    TEST_ASSERT(checkDocIds(PostingsOperations::intersect_with_skips(a, b), {42}), "Matching singletons skip failed");
+    TEST_ASSERT(checkDocIds(PostingsOperations::intersect_with_skips(a, b), {42}),
+                "Matching singletons skip failed");
 
     // Non-matching singletons
     TEST_ASSERT(PostingsOperations::intersect(a, c).empty(), "Non-matching singletons AND failed");
-    TEST_ASSERT(checkDocIds(PostingsOperations::union_(a, c), {42, 99}), "Non-matching singletons OR failed");
-    TEST_ASSERT(checkDocIds(PostingsOperations::difference(a, c), {42}), "Non-matching singletons NOT failed");
-    TEST_ASSERT(PostingsOperations::intersect_with_skips(a, c).empty(), "Non-matching singletons skip failed");
+    TEST_ASSERT(checkDocIds(PostingsOperations::union_(a, c), {42, 99}),
+                "Non-matching singletons OR failed");
+    TEST_ASSERT(checkDocIds(PostingsOperations::difference(a, c), {42}),
+                "Non-matching singletons NOT failed");
+    TEST_ASSERT(PostingsOperations::intersect_with_skips(a, c).empty(),
+                "Non-matching singletons skip failed");
 }
-
 
 // Test 8: Single matching document among many
 
@@ -174,11 +198,13 @@ void test_8_single_matching_document() {
     PostingList b = makeList({2, 4, 5, 8, 10});
 
     TEST_ASSERT(checkDocIds(PostingsOperations::intersect(a, b), {5}), "Single match AND failed");
-    TEST_ASSERT(checkDocIds(PostingsOperations::union_(a, b), {1, 2, 3, 4, 5, 7, 8, 9, 10}), "Single match OR failed");
-    TEST_ASSERT(checkDocIds(PostingsOperations::difference(a, b), {1, 3, 7, 9}), "Single match NOT failed");
-    TEST_ASSERT(checkDocIds(PostingsOperations::intersect_with_skips(a, b), {5}), "Single match skip failed");
+    TEST_ASSERT(checkDocIds(PostingsOperations::union_(a, b), {1, 2, 3, 4, 5, 7, 8, 9, 10}),
+                "Single match OR failed");
+    TEST_ASSERT(checkDocIds(PostingsOperations::difference(a, b), {1, 3, 7, 9}),
+                "Single match NOT failed");
+    TEST_ASSERT(checkDocIds(PostingsOperations::intersect_with_skips(a, b), {5}),
+                "Single match skip failed");
 }
-
 
 // Test 9: No matching documents
 
@@ -187,11 +213,12 @@ void test_9_no_matching_documents() {
     PostingList b = makeList({40, 50, 60});
 
     TEST_ASSERT(PostingsOperations::intersect(a, b).empty(), "No match AND failed");
-    TEST_ASSERT(checkDocIds(PostingsOperations::union_(a, b), {10, 20, 30, 40, 50, 60}), "No match OR failed");
-    TEST_ASSERT(checkDocIds(PostingsOperations::difference(a, b), {10, 20, 30}), "No match NOT failed");
+    TEST_ASSERT(checkDocIds(PostingsOperations::union_(a, b), {10, 20, 30, 40, 50, 60}),
+                "No match OR failed");
+    TEST_ASSERT(checkDocIds(PostingsOperations::difference(a, b), {10, 20, 30}),
+                "No match NOT failed");
     TEST_ASSERT(PostingsOperations::intersect_with_skips(a, b).empty(), "No match skip failed");
 }
-
 
 // Test 10: Lists with very different lengths
 
@@ -203,18 +230,23 @@ void test_10_different_lengths() {
     }
     PostingList longList = makeList(longVec);
 
-    TEST_ASSERT(checkDocIds(PostingsOperations::intersect(shortList, longList), {50}), "Short AND Long failed");
-    TEST_ASSERT(checkDocIds(PostingsOperations::union_(shortList, longList), longVec), "Short OR Long failed");
-    TEST_ASSERT(PostingsOperations::difference(shortList, longList).empty(), "Short - Long should be empty");
+    TEST_ASSERT(checkDocIds(PostingsOperations::intersect(shortList, longList), {50}),
+                "Short AND Long failed");
+    TEST_ASSERT(checkDocIds(PostingsOperations::union_(shortList, longList), longVec),
+                "Short OR Long failed");
+    TEST_ASSERT(PostingsOperations::difference(shortList, longList).empty(),
+                "Short - Long should be empty");
 
     vector<int> expectedNot;
     for (int i = 1; i <= 100; i++) {
-        if (i != 50) expectedNot.push_back(i);
+        if (i != 50)
+            expectedNot.push_back(i);
     }
-    TEST_ASSERT(checkDocIds(PostingsOperations::difference(longList, shortList), expectedNot), "Long - Short failed");
-    TEST_ASSERT(checkDocIds(PostingsOperations::intersect_with_skips(shortList, longList), {50}), "Short AND Long skip failed");
+    TEST_ASSERT(checkDocIds(PostingsOperations::difference(longList, shortList), expectedNot),
+                "Long - Short failed");
+    TEST_ASSERT(checkDocIds(PostingsOperations::intersect_with_skips(shortList, longList), {50}),
+                "Short AND Long skip failed");
 }
-
 
 // Test 11: Preservation of document IDs, frequencies, and positions
 
@@ -230,15 +262,17 @@ void test_11_metadata_preservation() {
     // Intersection: matching doc 2 should preserve left operand 'a' metadata
     PostingList andRes = PostingsOperations::intersect(a, b);
     TEST_ASSERT(andRes.size() == 1, "Intersect size should be 1");
-    const Posting& postAnd = andRes.get(0);
+    const Posting &postAnd = andRes.get(0);
     TEST_ASSERT(postAnd.get_doc_id() == 2, "Intersect docId should be 2");
-    TEST_ASSERT(postAnd.get_frequency() == 5, "Intersect frequency should be from left operand (5)");
-    TEST_ASSERT(postAnd.get_positions() == vector<int>({1, 3, 5, 7, 9}), "Intersect positions from left operand");
+    TEST_ASSERT(postAnd.get_frequency() == 5,
+                "Intersect frequency should be from left operand (5)");
+    TEST_ASSERT(postAnd.get_positions() == vector<int>({1, 3, 5, 7, 9}),
+                "Intersect positions from left operand");
 
     // Difference: doc 4 in A - B preserves A's metadata
     PostingList notRes = PostingsOperations::difference(a, b);
     TEST_ASSERT(notRes.size() == 1, "Difference size should be 1");
-    const Posting& postNot = notRes.get(0);
+    const Posting &postNot = notRes.get(0);
     TEST_ASSERT(postNot.get_doc_id() == 4, "Difference docId should be 4");
     TEST_ASSERT(postNot.get_frequency() == 2, "Difference frequency preserved");
     TEST_ASSERT(postNot.get_positions() == vector<int>({10, 20}), "Difference positions preserved");
@@ -249,12 +283,15 @@ void test_11_metadata_preservation() {
     // doc 6 in B only -> preserved from B
     PostingList orRes = PostingsOperations::union_(a, b);
     TEST_ASSERT(orRes.size() == 3, "Union size should be 3");
-    TEST_ASSERT(orRes.get(0).get_doc_id() == 2 && orRes.get(0).get_frequency() == 5, "Union doc 2 metadata from A");
-    TEST_ASSERT(orRes.get(1).get_doc_id() == 4 && orRes.get(1).get_frequency() == 2, "Union doc 4 metadata from A");
-    TEST_ASSERT(orRes.get(2).get_doc_id() == 6 && orRes.get(2).get_frequency() == 3, "Union doc 6 metadata from B");
-    TEST_ASSERT(orRes.get(2).get_positions() == vector<int>({100, 200, 300}), "Union doc 6 positions from B");
+    TEST_ASSERT(orRes.get(0).get_doc_id() == 2 && orRes.get(0).get_frequency() == 5,
+                "Union doc 2 metadata from A");
+    TEST_ASSERT(orRes.get(1).get_doc_id() == 4 && orRes.get(1).get_frequency() == 2,
+                "Union doc 4 metadata from A");
+    TEST_ASSERT(orRes.get(2).get_doc_id() == 6 && orRes.get(2).get_frequency() == 3,
+                "Union doc 6 metadata from B");
+    TEST_ASSERT(orRes.get(2).get_positions() == vector<int>({100, 200, 300}),
+                "Union doc 6 positions from B");
 }
-
 
 // Test 12: Large posting lists (performance)
 
@@ -303,10 +340,9 @@ void test_12_large_posting_lists() {
     auto notDur = chrono::duration_cast<chrono::microseconds>(endNot - endOr).count();
     auto skipDur = chrono::duration_cast<chrono::microseconds>(endSkip - endNot).count();
 
-    cout << "    [Perf] Large Lists (N=" << N << "): AND=" << andDur << "us, OR="
-         << orDur << "us, NOT=" << notDur << "us, SkipAND=" << skipDur << "us" << endl;
+    cout << "    [Perf] Large Lists (N=" << N << "): AND=" << andDur << "us, OR=" << orDur
+         << "us, NOT=" << notDur << "us, SkipAND=" << skipDur << "us" << endl;
 }
-
 
 // Test 13: Memory safety — copy, move, return by value
 
@@ -364,7 +400,6 @@ void test_13_memory_safety_and_ownership() {
     }
 }
 
-
 // Test 14: Skip intersection equivalence with normal intersection
 
 void test_14_skip_intersection_equivalence() {
@@ -378,8 +413,10 @@ void test_14_skip_intersection_equivalence() {
         int lenA = 50 + (trial * 30);
         int lenB = 60 + (trial * 35);
 
-        for (int i = 0; i < lenA; i++) aDocs.push_back(dist(rng));
-        for (int i = 0; i < lenB; i++) bDocs.push_back(dist(rng));
+        for (int i = 0; i < lenA; i++)
+            aDocs.push_back(dist(rng));
+        for (int i = 0; i < lenB; i++)
+            bDocs.push_back(dist(rng));
 
         // Sort and deduplicate to make valid sorted PostingLists
         sort(aDocs.begin(), aDocs.end());

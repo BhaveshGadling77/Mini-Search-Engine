@@ -5,17 +5,17 @@
 
 namespace {
 
-void append_posting(PostingList& destination, const Posting& posting) {
+void append_posting(PostingList &destination, const Posting &posting) {
     for (int position : posting.positions)
         destination.addOccurrence(posting.docId, position);
 }
 
 } // namespace
 
-PostingList PostingsOperations::intersect(const PostingList& a, const PostingList& b) {
+PostingList PostingsOperations::intersect(const PostingList &a, const PostingList &b) {
     PostingList result;
-    const std::vector<Posting>& left = a.get_all();
-    const std::vector<Posting>& right = b.get_all();
+    const std::vector<Posting> &left = a.get_all();
+    const std::vector<Posting> &right = b.get_all();
     size_t i = 0, j = 0;
 
     while (i < left.size() && j < right.size()) {
@@ -32,10 +32,10 @@ PostingList PostingsOperations::intersect(const PostingList& a, const PostingLis
     return result;
 }
 
-PostingList PostingsOperations::union_(const PostingList& a, const PostingList& b) {
+PostingList PostingsOperations::union_(const PostingList &a, const PostingList &b) {
     PostingList result;
-    const std::vector<Posting>& left = a.get_all();
-    const std::vector<Posting>& right = b.get_all();
+    const std::vector<Posting> &left = a.get_all();
+    const std::vector<Posting> &right = b.get_all();
     size_t i = 0, j = 0;
 
     while (i < left.size() && j < right.size()) {
@@ -48,15 +48,17 @@ PostingList PostingsOperations::union_(const PostingList& a, const PostingList& 
             append_posting(result, right[j++]);
         }
     }
-    while (i < left.size()) append_posting(result, left[i++]);
-    while (j < right.size()) append_posting(result, right[j++]);
+    while (i < left.size())
+        append_posting(result, left[i++]);
+    while (j < right.size())
+        append_posting(result, right[j++]);
     return result;
 }
 
-PostingList PostingsOperations::difference(const PostingList& a, const PostingList& b) {
+PostingList PostingsOperations::difference(const PostingList &a, const PostingList &b) {
     PostingList result;
-    const std::vector<Posting>& left = a.get_all();
-    const std::vector<Posting>& right = b.get_all();
+    const std::vector<Posting> &left = a.get_all();
+    const std::vector<Posting> &right = b.get_all();
     size_t i = 0, j = 0;
 
     while (i < left.size() && j < right.size()) {
@@ -69,15 +71,17 @@ PostingList PostingsOperations::difference(const PostingList& a, const PostingLi
             ++j;
         }
     }
-    while (i < left.size()) append_posting(result, left[i++]);
+    while (i < left.size())
+        append_posting(result, left[i++]);
     return result;
 }
 
-PostingList PostingsOperations::intersect_with_skips(const PostingList& a, const PostingList& b) {
+PostingList PostingsOperations::intersect_with_skips(const PostingList &a, const PostingList &b) {
     PostingList result;
-    const std::vector<Posting>& left = a.get_all();
-    const std::vector<Posting>& right = b.get_all();
-    if (left.empty() || right.empty()) return result;
+    const std::vector<Posting> &left = a.get_all();
+    const std::vector<Posting> &right = b.get_all();
+    if (left.empty() || right.empty())
+        return result;
 
     const size_t skip_left = std::max<size_t>(2, static_cast<size_t>(std::sqrt(left.size())));
     const size_t skip_right = std::max<size_t>(2, static_cast<size_t>(std::sqrt(right.size())));
@@ -103,21 +107,22 @@ PostingList PostingsOperations::intersect_with_skips(const PostingList& a, const
     return result;
 }
 
-std::vector<int> PostingsOperations::extract_doc_ids(const PostingList& list) {
+std::vector<int> PostingsOperations::extract_doc_ids(const PostingList &list) {
     std::vector<int> ids;
     ids.reserve(list.get_all().size());
-    for (const Posting& posting : list.get_all()) ids.push_back(posting.docId);
+    for (const Posting &posting : list.get_all())
+        ids.push_back(posting.docId);
     return ids;
 }
 
-PostingList PostingsOperations::boolean_and(const PostingList& a, const PostingList& b) {
+PostingList PostingsOperations::boolean_and(const PostingList &a, const PostingList &b) {
     return intersect(a, b);
 }
 
-PostingList PostingsOperations::boolean_or(const PostingList& a, const PostingList& b) {
+PostingList PostingsOperations::boolean_or(const PostingList &a, const PostingList &b) {
     return union_(a, b);
 }
 
-PostingList PostingsOperations::boolean_not(const PostingList& a, const PostingList& b) {
+PostingList PostingsOperations::boolean_not(const PostingList &a, const PostingList &b) {
     return difference(a, b);
 }

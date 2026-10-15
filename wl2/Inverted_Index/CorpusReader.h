@@ -13,6 +13,6 @@ struct Document {
     vector<string> tokens;
 };
 
-vector<Document> readDocuments(const string& filename);
+vector<Document> readDocuments(const string &filename);
 
 #endif
