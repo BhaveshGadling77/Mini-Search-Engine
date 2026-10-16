@@ -13,35 +13,37 @@ void printResults(vector<string> results){
 }
 
 int main() {
-    Trie prefixTrie;
-    Trie suffixTrie;
+    Trie trie;
 
-    vector <string> words = {"car", "card", "care", "cat", "dog", "apple"};
+    vector <string> words = {"car", "card", "care", "cat", "dog", "apple","cards","carding"};
     for(string word: words){
-        prefixTrie.insert(word);
-        suffixTrie.insertReversed(word);
+        trie.insert(word);
+        trie.insertReversed(word);
     }
 
     cout << "Prefix 'ca': ";
-    printResults(prefixTrie.searchForPrefix("ca"));
+    printResults(trie.searchForPrefix("ca"));
 
     cout << "Prefix 'car': ";
-    printResults(prefixTrie.searchForPrefix("car"));
+    printResults(trie.searchForPrefix("car"));
 
     cout << "Prefix 'xyz': ";
-    printResults(prefixTrie.searchForPrefix("xyz"));
+    printResults(trie.searchForPrefix("xyz"));
 
     cout << "Suffix 'ar': ";
-    printResults(suffixTrie.searchForSuffix("ar"));
+    printResults(trie.searchForSuffix("ar"));
 
     cout << "Suffix 'at': ";
-    printResults(suffixTrie.searchForSuffix("at"));
+    printResults(trie.searchForSuffix("at"));
 
     cout << "Suffix 'ple': ";
-    printResults(suffixTrie.searchForSuffix("ple"));
+    printResults(trie.searchForSuffix("ple"));
 
     cout << "Suffix 'xyz': ";
-    printResults(suffixTrie.searchForSuffix("xyz"));
+    printResults(trie.searchForSuffix("xyz"));
+
+    cout << "*ar*: ";
+    printResults(trie.searchForInfixWildCard("ard"));
 
     return 0;
 }
