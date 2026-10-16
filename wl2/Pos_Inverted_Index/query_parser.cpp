@@ -151,45 +151,92 @@ namespace
         return result;
     }
 
-    vector<string> expand_term(const string& pattern)
+
+vector<string> expand_term(const string& pattern)
+{
+    if (pattern.empty())
+        return {};
+
+    // Exact word search
+    if (pattern.find('*') == string::npos)
     {
-        if (pattern.find('*') == string::npos)
-        {
-            if (g_vocabulary.count(pattern))
-                return {pattern};
+        if (g_vocabulary.count(pattern))
+            return {pattern};
 
+        return {};
+    }
+
+    // Infix wildcard: *nac*
+    
+    // Infix wildcard: *nac*
+    if (pattern.size() >= 2 &&
+        pattern.front() == '*' &&
+        pattern.back() == '*')
+    {
+        string infix = pattern.substr(1, pattern.size() - 2);
+
+        if (infix.empty() || !g_prefix_trie)
             return {};
-        }
 
-        size_t star = pattern.find('*');
+        vector<string> matches =
+            g_prefix_trie->searchForInfixWildCard(infix);
 
-        if (pattern.find('*', star + 1) != string::npos)
-            return {};
-
-        string prefix = pattern.substr(0, star);
-        string suffix = pattern.substr(star + 1);
-
-        vector<string> matches;
-
-        for (const string& word : g_vocabulary)
-        {
-            bool prefix_matches =
-                prefix.empty() ||
-                word.compare(0, prefix.size(), prefix) == 0;
-
-            bool suffix_matches =
-                suffix.empty() ||
-                (word.size() >= suffix.size() &&
-                 word.compare(word.size() - suffix.size(),
-                              suffix.size(), suffix) == 0);
-
-            if (prefix_matches && suffix_matches)
-                matches.push_back(word);
-        }
+        matches.erase(
+            remove_if(
+                matches.begin(),
+                matches.end(),
+                [](const string& word)
+                {
+                    return !g_vocabulary.count(word);
+                }
+            ),
+            matches.end()
+        );
 
         sort(matches.begin(), matches.end());
+        matches.erase(
+            unique(matches.begin(), matches.end()),
+            matches.end()
+        );
+
         return matches;
     }
+
+
+    // Existing prefix/suffix wildcard handling
+    size_t star = pattern.find('*');
+
+    if (pattern.find('*', star + 1) != string::npos)
+        return {};
+
+    string prefix = pattern.substr(0, star);
+    string suffix = pattern.substr(star + 1);
+
+    vector<string> matches;
+
+    for (const string& word : g_vocabulary)
+    {
+        bool prefix_matches =
+            prefix.empty() ||
+            word.compare(0, prefix.size(), prefix) == 0;
+
+        bool suffix_matches =
+            suffix.empty() ||
+            (word.size() >= suffix.size() &&
+             word.compare(
+                 word.size() - suffix.size(),
+                 suffix.size(),
+                 suffix
+             ) == 0);
+
+        if (prefix_matches && suffix_matches)
+            matches.push_back(word);
+    }
+
+    sort(matches.begin(), matches.end());
+    return matches;
+}
+
 
     set<int> all_document_ids()
     {
