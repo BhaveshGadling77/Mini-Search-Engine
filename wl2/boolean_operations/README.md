@@ -8,7 +8,7 @@ PostingList* ball_list = index.get("ball");
 
 if (base_list != nullptr && ball_list != nullptr) {
     PostingList matching_documents =
-        PostingsOperations::boolean_and(*base_list, *ball_list);
+        PostingsOperations::intersect(*base_list, *ball_list);
 }
 ```
 
@@ -18,12 +18,12 @@ The operations use the `PostingList` type from `Inverted_Index/Posting.h`. Lists
 
 | Method | Result |
 | --- | --- |
-| `intersect(a, b)` or `boolean_and(a, b)` | Documents present in both lists |
-| `union_(a, b)` or `boolean_or(a, b)` | Documents present in either list, without duplicate document IDs |
-| `difference(a, b)` or `boolean_not(a, b)` | Documents in `a` that are absent from `b` |
+| `intersect(a, b)` | Documents present in both lists |
+| `union_(a, b)` | Documents present in either list, without duplicate document IDs |
+| `difference(a, b)` | Documents in `a` that are absent from `b` |
 | `intersect_with_skips(a, b)` | Same document IDs as intersection, using index jumps to skip ahead in sorted lists |
 
-Each method returns a `PostingList`. `boolean_not(a, b)` is the difference `a - b`; it does not compute a corpus-wide complement. `extract_doc_ids(list)` returns just the document IDs as a `vector<int>`.
+Each method returns a `PostingList`. `difference(a, b)` computes `a - b`; it does not compute a corpus-wide complement. `extract_doc_ids(list)` returns just the document IDs as a `vector<int>`.
 
 For a document present in both inputs, intersection and union keep the posting data from the left list. Difference keeps the posting data from its left input. The operations do not merge term frequencies or positions across lists.
 

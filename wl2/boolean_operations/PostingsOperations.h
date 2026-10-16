@@ -13,9 +13,6 @@ class PostingsOperations {
     static PostingList intersect_with_skips(const PostingList &a, const PostingList &b);
 
     static std::vector<int> extract_doc_ids(const PostingList &list);
-    static PostingList boolean_and(const PostingList &a, const PostingList &b);
-    static PostingList boolean_or(const PostingList &a, const PostingList &b);
-    static PostingList boolean_not(const PostingList &a, const PostingList &b);
 };
 
 #endif // POSTINGSOPERATIONS_H

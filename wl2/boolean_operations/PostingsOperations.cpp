@@ -114,15 +114,3 @@ std::vector<int> PostingsOperations::extract_doc_ids(const PostingList &list) {
         ids.push_back(posting.docId);
     return ids;
 }
-
-PostingList PostingsOperations::boolean_and(const PostingList &a, const PostingList &b) {
-    return intersect(a, b);
-}
-
-PostingList PostingsOperations::boolean_or(const PostingList &a, const PostingList &b) {
-    return union_(a, b);
-}
-
-PostingList PostingsOperations::boolean_not(const PostingList &a, const PostingList &b) {
-    return difference(a, b);
-}

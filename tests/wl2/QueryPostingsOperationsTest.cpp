@@ -54,12 +54,12 @@ void test_basic_operations() {
     const PostingList a = make_list({1, 2, 4, 7});
     const PostingList b = make_list({2, 4, 5, 7});
 
-    expect_equal("AND", PostingsOperations::extract_doc_ids(PostingsOperations::boolean_and(a, b)),
+    expect_equal("AND", PostingsOperations::extract_doc_ids(PostingsOperations::intersect(a, b)),
                  {2, 4, 7});
-    expect_equal("OR", PostingsOperations::extract_doc_ids(PostingsOperations::boolean_or(a, b)),
+    expect_equal("OR", PostingsOperations::extract_doc_ids(PostingsOperations::union_(a, b)),
                  {1, 2, 4, 5, 7});
     expect_equal("NOT A minus B",
-                 PostingsOperations::extract_doc_ids(PostingsOperations::boolean_not(a, b)), {1});
+                 PostingsOperations::extract_doc_ids(PostingsOperations::difference(a, b)), {1});
     expect_equal(
         "skip AND",
         PostingsOperations::extract_doc_ids(PostingsOperations::intersect_with_skips(a, b)),
