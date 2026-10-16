@@ -6,7 +6,7 @@
 using namespace std;
 
 int main() {
-    string filename = "sample_input.json";
+    string filename = "crawler.json";
 
     vector<Document> docs = readDocuments(filename);
 
