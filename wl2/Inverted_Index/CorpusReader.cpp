@@ -192,8 +192,6 @@ vector<Document> readDocuments(const string &filename) {
         return docs;
     }
 
-    // The corpus is JSON Lines: each physical line is one complete document.
-    // Parsing line-by-line avoids treating braces inside page text as JSON syntax.
     string line;
     while (getline(file, line)) {
         if (line.empty())

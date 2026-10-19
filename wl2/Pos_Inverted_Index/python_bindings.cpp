@@ -3,7 +3,7 @@
 using namespace pybind11::literals;
 #include <pybind11/stl.h>
 namespace py = pybind11;
-PYBIND11_MODULE(w2bridge, m) {
+PYBIND11_MODULE(wl2bridge, m) {
     m.doc() = "Worklet 2 query bridge. Call initialize(corpus_path) before the five API functions.";
     m.def("initialize", [](const std::string &path) {
         static std::vector<Document> docs;

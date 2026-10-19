@@ -3,12 +3,10 @@
 #include <iostream>
 using namespace std;
 
-// Constructor
 PostingList::PostingList() {
     // Vector is initially empty
 }
 
-// Add an occurrence of a word
 void PostingList::addOccurrence(int docId, int pos) {
 
     // Check if document already exists

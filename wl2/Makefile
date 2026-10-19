@@ -1,53 +1,66 @@
 CXX ?= g++
 CXXFLAGS ?= -std=c++17 -Wall -Wextra -O2
 
-BUILD_DIR := build
-INDEX_DIR := Inverted_Index
-OPS_DIR := boolean_operations
-TEST_DIR := ../tests/wl2
+ROOT := ..
+BUILD := $(ROOT)/build
 
-INDEX_SOURCES := \
-	$(INDEX_DIR)/main.cpp \
-	$(INDEX_DIR)/CorpusReader.cpp \
-	$(INDEX_DIR)/HashMap.cpp \
-	$(INDEX_DIR)/Posting.cpp
+W2 := Inverted_Index
+OPS := boolean_operations
+PARSER := Pos_Inverted_Index
 
-QUERY_TEST_SOURCES := \
-	$(TEST_DIR)/QueryPostingsOperationsTest.cpp \
-	$(OPS_DIR)/PostingsOperations.cpp \
-	$(INDEX_DIR)/Posting.cpp
+.PHONY: all cli test test-wl2 run clean pybind
 
-BENCHMARK_SOURCES := \
-	$(TEST_DIR)/PostingsOperationsBenchmark.cpp \
-	$(OPS_DIR)/PostingsOperations.cpp \
-	$(INDEX_DIR)/Posting.cpp
+all: cli
 
-.PHONY: all index run test benchmark clean
+$(BUILD):
+	mkdir -p $(BUILD)
 
-all: test
+# cli search application
+$(BUILD)/search_cli: $(ROOT)/cli/main.cpp $(W2)/CorpusReader.cpp $(W2)/HashMap.cpp $(W2)/Posting.cpp $(PARSER)/query_parser.cpp | $(BUILD)
+	$(CXX) $(CXXFLAGS) -I$(W2) -I$(PARSER) $^ -o $@
 
-index: $(BUILD_DIR)/index_engine
+cli: $(BUILD)/search_cli
 
-$(BUILD_DIR):
-	mkdir -p $(BUILD_DIR)
+run: cli
+	./$(BUILD)/search_cli $(CORPUS)
 
-$(BUILD_DIR)/index_engine: $(INDEX_SOURCES) | $(BUILD_DIR)
-	$(CXX) $(CXXFLAGS) -I$(INDEX_DIR) $^ -o $@
+# Worklet 3 bridge test
+$(BUILD)/bridge_test: $(ROOT)/tests/wl2/Worklet3BridgeTest.cpp $(W2)/CorpusReader.cpp $(PARSER)/query_parser.cpp | $(BUILD)
+	$(CXX) $(CXXFLAGS) -I$(W2) -I$(PARSER) $^ -o $@
 
-$(BUILD_DIR)/query_postings_operations_test: $(QUERY_TEST_SOURCES) | $(BUILD_DIR)
-	$(CXX) $(CXXFLAGS) -I$(INDEX_DIR) -I$(OPS_DIR) $^ -o $@
+# Posting operations tests
+$(BUILD)/postings_test: tests/wl2/QueryPostingsOperationsTest.cpp $(OPS)/PostingsOperations.cpp $(W2)/Posting.cpp | $(BUILD)
+	$(CXX) $(CXXFLAGS) -I$(W2) -I$(OPS) $^ -o $@
 
-$(BUILD_DIR)/postings_operations_benchmark: $(BENCHMARK_SOURCES) | $(BUILD_DIR)
-	$(CXX) $(CXXFLAGS) -I$(INDEX_DIR) -I$(OPS_DIR) $^ -o $@
+# Posting operations benchmark testing for other approach of skip pointers
+$(BUILD)/postings_benchmark: tests/wl2/PostingsOperationsBenchmark.cpp $(OPS)/PostingsOperations.cpp $(W2)/Posting.cpp | $(BUILD)
+	$(CXX) $(CXXFLAGS) -I$(W2) -I$(OPS) $^ -o $@
 
-run: $(BUILD_DIR)/index_engine
-	cd $(INDEX_DIR) && ../$(BUILD_DIR)/index_engine
+# Trie tests
+$(BUILD)/trie_test: trie/trietests.cpp trie/trie.cpp | $(BUILD)
+	$(CXX) $(CXXFLAGS) -Itrie $^ -o $@
 
-test: $(BUILD_DIR)/query_postings_operations_test
-	./$(BUILD_DIR)/query_postings_operations_test
+test-wl2: $(BUILD)/bridge_test $(BUILD)/postings_test $(BUILD)/trie_test
+	./$(BUILD)/bridge_test
+	./$(BUILD)/postings_test
+	./$(BUILD)/trie_test
 
-benchmark: $(BUILD_DIR)/postings_operations_benchmark
-	./$(BUILD_DIR)/postings_operations_benchmark
+test: test-wl2
+
+# Python bindings for wl3
+pybind:
+	@PYBIND_INCLUDES="$$(python3 -m pybind11 --includes 2>/dev/null)"; \
+	if [ -z "$$PYBIND_INCLUDES" ]; then \
+		echo 'pybind11 is required: python3 -m pip install pybind11'; \
+		exit 2; \
+	fi; \
+	mkdir -p $(BUILD); \
+	$(CXX) $(CXXFLAGS) -shared -fPIC $$PYBIND_INCLUDES \
+		-I$(W2) -I$(PARSER) \
+		$(PARSER)/python_bindings.cpp \
+		$(W2)/CorpusReader.cpp \
+		$(PARSER)/query_parser.cpp \
+		-o $(BUILD)/wl2bridge$$(python3-config --extension-suffix)
 
 clean:
-	rm -rf $(BUILD_DIR)
+	rm -rf $(BUILD)
