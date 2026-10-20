@@ -4,10 +4,10 @@
 #include <algorithm>
 using namespace std;
 
-/*
+
 // Constructor
 PostingList::PostingList() {
-} */
+} 
 
 void PostingList::sortPostings() {
     sort(postings.begin(), postings.end(),
@@ -47,10 +47,6 @@ void PostingList::addOccurrence(int docId, int pos) {
 }
 
 const vector<Posting>& PostingList::get_all() const {
-    return postings;
-}
-
-const vector<Posting> &PostingList::get_all() const {
     return postings;
 }
 

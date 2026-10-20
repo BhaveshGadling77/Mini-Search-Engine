@@ -17,7 +17,7 @@ class PostingList {
     vector<Posting> postings;
 
 public:
-    //PostingList();
+    PostingList();
 
     void addOccurrence(int docId, int pos);
 

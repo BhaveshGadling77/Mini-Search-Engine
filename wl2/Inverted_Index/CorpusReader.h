@@ -15,6 +15,7 @@ struct CorpusMeta {
 // Read documents from a corpus file
 struct Document {
     int docId;
+    string title;
     string url;
     string text;
     vector<string> tokens;

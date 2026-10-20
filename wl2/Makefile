@@ -29,11 +29,11 @@ $(BUILD)/bridge_test: $(ROOT)/tests/wl2/Worklet3BridgeTest.cpp $(W2)/CorpusReade
 	$(CXX) $(CXXFLAGS) -I$(W2) -I$(PARSER) $^ -o $@
 
 # Posting operations tests
-$(BUILD)/postings_test: tests/wl2/QueryPostingsOperationsTest.cpp $(OPS)/PostingsOperations.cpp $(W2)/Posting.cpp | $(BUILD)
+$(BUILD)/postings_test: $(ROOT)/tests/wl2/QueryPostingsOperationsTest.cpp $(OPS)/PostingsOperations.cpp $(W2)/Posting.cpp | $(BUILD)
 	$(CXX) $(CXXFLAGS) -I$(W2) -I$(OPS) $^ -o $@
 
-# Posting operations benchmark testing for other approach of skip pointers
-$(BUILD)/postings_benchmark: tests/wl2/PostingsOperationsBenchmark.cpp $(OPS)/PostingsOperations.cpp $(W2)/Posting.cpp | $(BUILD)
+# Posting operations benchmark
+$(BUILD)/postings_benchmark: $(ROOT)/tests/wl2/PostingsOperationsBenchmark.cpp $(OPS)/PostingsOperations.cpp $(W2)/Posting.cpp | $(BUILD)
 	$(CXX) $(CXXFLAGS) -I$(W2) -I$(OPS) $^ -o $@
 
 # Trie tests

@@ -4,23 +4,8 @@
 #include <iostream>
 #include <sstream>
 
-static string extractString(const string& text, size_t objStart,
-                            size_t objEnd, const string& key) {
-    size_t keyPos = text.find("\"" + key + "\"", objStart);
-    if (keyPos == string::npos || keyPos > objEnd) return "";
-
-    size_t colonPos = text.find(':', keyPos);
-    if (colonPos == string::npos || colonPos > objEnd) return "";
-
-    size_t start = text.find('"', colonPos + 1);
-    if (start == string::npos || start > objEnd) return "";
-    start++;
-
-    size_t end = text.find('"', start);
-    if (end == string::npos || end > objEnd) return "";
-
-    return text.substr(start, end - start);
-}
+static string extractString(const string &text, size_t start, size_t end,
+                            const string &key);
 
 // ADDED: Extract a metadata value from the meta object
 static string extractMetaValue(const string& text, size_t objStart,
@@ -33,8 +18,8 @@ static string extractMetaValue(const string& text, size_t objStart,
 
     size_t metaEnd = text.find('}', metaStart);
     if (metaEnd == string::npos || metaEnd > objEnd) return "";
-
-    return extractString(text, metaStart, metaEnd, key);
+    const string meta = text.substr(metaStart, metaEnd - metaStart + 1);
+    return extractString(meta, 0, meta.size(), key);
 }
 
 
@@ -278,8 +263,8 @@ static vector<string> extractTokens(const string &text, size_t objStart, size_t 
 
 vector<Document> readDocuments(const string &filename) {
     vector<Document> docs;
-    ifstream file(filename);
-    if (!file) {
+    const string text = readWholeFile(filename);
+    if (text.empty()) {
         cerr << "Could not read file: " << filename << endl;
         return docs;
     }
@@ -290,19 +275,32 @@ vector<Document> readDocuments(const string &filename) {
             size_t objStart = i;
             int depth = 1;
             size_t j = i + 1;
+            bool inString = false;
+            bool escaped = false;
             while (j < text.size() && depth > 0) {
-                if (text[j] == '{') depth++;
-                else if (text[j] == '}') depth--;
+                const char c = text[j];
+                if (inString) {
+                    if (escaped) escaped = false;
+                    else if (c == '\\') escaped = true;
+                    else if (c == '"') inString = false;
+                } else if (c == '"') {
+                    inString = true;
+                } else if (c == '{') {
+                    depth++;
+                } else if (c == '}') {
+                    depth--;
+                }
                 j++;
             }
             size_t objEnd = j - 1;
+            const string object = text.substr(objStart, j - objStart);
 
             Document doc;
             doc.docId = extractDocId(text, objStart, objEnd);
-            doc.tokens = extractTokens(text, objStart, objEnd);
-
-            // ADDED: Extract the document URL
-            doc.url = extractString(text, objStart, objEnd, "url");
+            doc.tokens = extractTokens(object, 0, object.size());
+            doc.title = extractString(object, 0, object.size(), "title");
+            doc.url = extractString(object, 0, object.size(), "url");
+            doc.text = extractString(object, 0, object.size(), "text");
 
             // ADDED: Extract metadata fields from the meta object
             doc.meta.crawled_at =
@@ -317,15 +315,12 @@ vector<Document> readDocuments(const string &filename) {
             doc.meta.depth =
                 extractMetaInt(text, objStart, objEnd, "depth");
 
-            if (doc.docId != -1) {
-                docs.push_back(doc);
-            }
-
             i = j; // continue scan
+            if (doc.docId != -1)
+                docs.push_back(std::move(doc));
         } else {
             i++;
         }
-        docs.push_back(std::move(doc));
     }
 
     return docs;
