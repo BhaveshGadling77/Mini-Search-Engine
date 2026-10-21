@@ -7,6 +7,7 @@ BUILD := $(ROOT)/build
 W2 := Inverted_Index
 OPS := boolean_operations
 PARSER := Pos_Inverted_Index
+TEXT := lib/src/libfreeling/text_processing.cc
 
 .PHONY: all cli test test-wl2 run clean pybind
 
@@ -16,7 +17,7 @@ $(BUILD):
 	mkdir -p $(BUILD)
 
 # cli search application
-$(BUILD)/search_cli: $(ROOT)/cli/main.cpp $(W2)/CorpusReader.cpp $(W2)/HashMap.cpp $(W2)/Posting.cpp $(PARSER)/query_parser.cpp | $(BUILD)
+$(BUILD)/search_cli: $(ROOT)/cli/main.cpp $(W2)/CorpusReader.cpp $(W2)/HashMap.cpp $(W2)/Posting.cpp $(PARSER)/query_parser.cpp $(TEXT) | $(BUILD)
 	$(CXX) $(CXXFLAGS) -I$(W2) -I$(PARSER) $^ -o $@
 
 cli: $(BUILD)/search_cli
@@ -25,7 +26,7 @@ run: cli
 	./$(BUILD)/search_cli $(CORPUS)
 
 # Worklet 3 bridge test
-$(BUILD)/bridge_test: $(ROOT)/tests/wl2/Worklet3BridgeTest.cpp $(W2)/CorpusReader.cpp $(PARSER)/query_parser.cpp | $(BUILD)
+$(BUILD)/bridge_test: $(ROOT)/tests/wl2/Worklet3BridgeTest.cpp $(W2)/CorpusReader.cpp $(PARSER)/query_parser.cpp $(TEXT) | $(BUILD)
 	$(CXX) $(CXXFLAGS) -I$(W2) -I$(PARSER) $^ -o $@
 
 # Posting operations tests
@@ -60,6 +61,7 @@ pybind:
 		$(PARSER)/python_bindings.cpp \
 		$(W2)/CorpusReader.cpp \
 		$(PARSER)/query_parser.cpp \
+		$(TEXT) \
 		-o $(BUILD)/wl2bridge$$(python3-config --extension-suffix)
 
 clean:

@@ -207,3 +207,15 @@ poetry.toml
 pyrightconfig.json
 
 # End of https://www.toptal.com/developers/gitignore/api/c++,python
+
+# # Keep the Worklet 2 text-processing library in source control.
+# !wl2/lib/
+# !wl2/lib/src/
+# !wl2/lib/src/include/
+# !wl2/lib/src/include/text_processing.h
+# !wl2/lib/src/libfreeling/
+# !wl2/lib/src/libfreeling/text_processing.cc
+# wl2/lib/data/
+# wl2/lib/src/include/freeling/
+# wl2/lib/src/libfreeling/*.cc
+# !wl2/lib/src/libfreeling/text_processing.cc
