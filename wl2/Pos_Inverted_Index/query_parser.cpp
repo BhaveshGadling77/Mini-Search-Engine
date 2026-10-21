@@ -63,6 +63,97 @@ std::vector<std::string> split_words(const std::string &input) {
     return wl2::process_text(input);
 }
 
+std::vector<std::string> canonicalize_trie_matches(const std::vector<std::string> &matches) {
+    std::set<std::string> seen;
+    std::vector<std::string> result;
+    for (const auto &match : matches) {
+        const auto lemma = wl2::lemmatize(normalize(match));
+        if (lemma.empty() || !seen.insert(lemma).second)
+            continue;
+        result.push_back(lemma);
+    }
+    return result;
+}
+
+std::vector<std::string> dictionary_expansion(const std::string &pattern) {
+    std::vector<std::string> result;
+    if (pattern.find('*') == std::string::npos) {
+        if (df.count(pattern))
+            result.push_back(pattern);
+        return result;
+    }
+    for (const auto &entry : df)
+        if (wildcard_matches(entry.first, pattern))
+            result.push_back(entry.first);
+    result.erase(std::remove_if(result.begin(), result.end(), [&](const auto &term) { return !df.count(term); }), result.end());
+    std::sort(result.begin(), result.end());
+    return result;
+}
+
+std::vector<std::string> trie_expansion(const std::string &pattern) {
+    if (pattern.find('*') == std::string::npos) {
+        return df.count(pattern) ? std::vector<std::string>{pattern} : std::vector<std::string>{};
+    }
+    if (!vocabulary_trie || !std::all_of(pattern.begin(), pattern.end(), [](unsigned char c) {
+            return std::isalpha(c) || c == '*';
+        })) {
+        return dictionary_expansion(pattern);
+    }
+
+    const size_t star_count = std::count(pattern.begin(), pattern.end(), '*');
+    if (star_count == 1) {
+        const size_t star = pattern.find('*');
+        const auto prefix = pattern.substr(0, star), suffix = pattern.substr(star + 1);
+        if ((!prefix.empty() && !trie_word(prefix)) || (!suffix.empty() && !trie_word(suffix)))
+            return dictionary_expansion(pattern);
+
+        std::vector<std::string> result;
+        if (prefix.empty() && suffix.empty()) {
+            for (const auto &entry : df)
+                result.push_back(entry.first);
+            return canonicalize_trie_matches(result);
+        }
+        if (!prefix.empty() && !suffix.empty())
+            result = vocabulary_trie->searchForWildCard(prefix, suffix);
+        else if (!prefix.empty())
+            result = vocabulary_trie->searchForPrefix(prefix);
+        else if (!suffix.empty())
+            result = vocabulary_trie->searchForSuffix(suffix);
+        return canonicalize_trie_matches(result);
+    }
+
+    if (star_count >= 2) {
+        const auto first_star = pattern.find('*');
+        const auto second_star = pattern.find('*', first_star + 1);
+        const auto prefix = pattern.substr(0, first_star);
+        const auto infix = pattern.substr(first_star + 1, second_star - first_star - 1);
+        const auto suffix = pattern.substr(second_star + 1);
+
+        std::vector<std::string> candidates;
+        if (prefix.empty() && suffix.empty() && !infix.empty() && trie_word(infix)) {
+            candidates = vocabulary_trie->searchForInfixWildCard(infix);
+        } else {
+            if (!prefix.empty() && trie_word(prefix)) {
+                candidates = vocabulary_trie->searchForPrefix(prefix);
+            } else if (!infix.empty() && trie_word(infix)) {
+                candidates = vocabulary_trie->searchForInfixWildCard(infix);
+            } else if (!suffix.empty() && trie_word(suffix)) {
+                candidates = vocabulary_trie->searchForSuffix(suffix);
+            } else {
+                return dictionary_expansion(pattern);
+            }
+        }
+
+        std::vector<std::string> result;
+        for (const auto &term : candidates)
+            if (wildcard_matches(term, pattern))
+                result.push_back(term);
+        return canonicalize_trie_matches(result);
+    }
+
+    return dictionary_expansion(pattern);
+}
+
 std::vector<std::string> terms_for_document(const Document &doc) {
     if (!doc.text.empty())
         return split_words(doc.text);
@@ -273,26 +364,7 @@ class QueryParser {
         throw std::runtime_error("Expected a term or phrase.");
     }
     std::vector<std::string> expand(const std::string &pattern) const {
-        std::vector<std::string> result;
-        if (pattern.find('*') == std::string::npos) {
-            if (df.count(pattern))
-                result.push_back(pattern);
-            return result;
-        }
-        if (vocabulary_trie && pattern.find('*') == pattern.rfind('*')) {
-            const size_t star = pattern.find('*');
-            const auto prefix = pattern.substr(0, star), suffix = pattern.substr(star + 1);
-            if ((!prefix.empty() && !trie_word(prefix)) || (!suffix.empty() && !trie_word(suffix))) {
-                for (const auto &entry : df) if (wildcard_matches(entry.first, pattern)) result.push_back(entry.first);
-            } else if (prefix.empty() && suffix.empty()) {
-                for (const auto &entry : df) result.push_back(entry.first);
-            } else if (!prefix.empty() && !suffix.empty()) result = vocabulary_trie->searchForWildCard(prefix, suffix);
-            else if (!prefix.empty()) result = vocabulary_trie->searchForPrefix(prefix);
-            else if (!suffix.empty()) result = vocabulary_trie->searchForSuffix(suffix);
-        } else {
-            for (const auto &entry : df)
-                if (wildcard_matches(entry.first, pattern)) result.push_back(entry.first);
-        }
+        auto result = trie_expansion(pattern);
         result.erase(std::remove_if(result.begin(), result.end(), [&](const auto &term) { return !df.count(term); }), result.end());
         std::sort(result.begin(), result.end());
         return result;
@@ -316,10 +388,7 @@ class QueryParser {
             if (word.find('*') == std::string::npos)
                 alternatives.push_back({normalize(word)});
             else {
-                std::vector<std::string> matches;
-                for (const auto &entry : df)
-                    if (wildcard_matches(entry.first, word))
-                        matches.push_back(entry.first);
+                const auto matches = trie_expansion(word);
                 if (matches.empty())
                     return {};
                 alternatives.push_back(matches);
@@ -374,13 +443,16 @@ void initialize_query_processor(const std::vector<Document> *input) {
         hash *= 1099511628211ULL;
         for (const auto &token : terms_for_document(doc)) {
             ++counts[token];
-            if (trie_word(token)) {
-                vocabulary_trie->insert(token);
-                vocabulary_trie->insertReversed(token);
-            }
             for (unsigned char c : token) {
                 hash ^= c;
                 hash *= 1099511628211ULL;
+            }
+        }
+        for (const auto &token : document_tokens(doc)) {
+            const auto trie_token = normalize(token);
+            if (trie_word(trie_token)) {
+                vocabulary_trie->insert(trie_token);
+                vocabulary_trie->insertReversed(trie_token);
             }
         }
         for (const auto &term : counts)
@@ -405,10 +477,8 @@ QueryResult resolve_query(const std::string &query) {
     }
     std::set<std::string> expanded_terms;
     for (const auto &word : query_terms) {
-        for (const auto &term : df) {
-            if (wildcard_matches(term.first, word))
-                expanded_terms.insert(term.first);
-        }
+        for (const auto &term : trie_expansion(word))
+            expanded_terms.insert(term);
         if (word.find('*') == std::string::npos && df.count(word))
             expanded_terms.insert(word);
     }
