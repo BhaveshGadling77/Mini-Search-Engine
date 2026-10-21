@@ -18,7 +18,7 @@ from crawler.frontier import URLFrontier
 from crawler.models import Document
 from crawler.parser import parse_page
 from crawler.store import JSONLStore
-from crawler.tokenizer import tokenize
+from crawler.tokenizer import tokenize, tokenize_segments
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +73,8 @@ class CrawlEngine:
 
             # Parse HTML once — extracts both text and links in a single pass
             text, links = parse_page(html, url)
-            tokens = tokenize(text)
+            segments = tokenize_segments(text)
+            tokens = [t for seg in segments for t in seg]
 
             self._doc_seq += 1
             document = Document(
@@ -81,6 +82,7 @@ class CrawlEngine:
                 url=url,
                 text=text,
                 tokens=tuple(tokens),
+                token_segments=tuple(tuple(seg) for seg in segments),
                 meta={
                     "crawled_at": Document.now_iso(),
                     "content_length": len(html),

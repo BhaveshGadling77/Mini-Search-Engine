@@ -52,11 +52,11 @@ The separate query processor is initialized with a pointer to a `vector<Document
 
 Normalization here lowercases bytes with the C locale; query tokenization recognizes alphanumeric characters, underscore, and `*`. Worklet 1 is expected to have already normalized corpus tokens. `get_corpus_stats()` returns document count and average **token-vector length**.
 
-`resolve_query(query)` lexes terms, quoted phrases, parentheses, and `AND` / `OR` / `NOT`, then parses with precedence `NOT` > `AND` > `OR`. Adjacent terms are treated as implicit AND. Parenthesized expressions are supported. Boolean evaluation uses ordered `std::set<int>` collections and performs set union/intersection; `NOT` subtracts the operand from the set of all loaded document IDs.
+`resolve_query(query)` lexes terms, quoted phrases, parentheses, and `AND` / `OR` / `NOT`, then parses with precedence `NOT` > `AND` > `OR`. Adjacent terms are treated as implicit AND. Parenthesized expressions are supported. Term lookup uses the positional inverted index, wildcard vocabulary expansion uses the trie where its alphabet supports the pattern, and boolean composition delegates union/intersection/difference to `PostingsOperations`.
 
-An unquoted word matches documents whose token frequency table contains the word. A word pattern may contain one `*`; the implementation expands it by scanning the vocabulary/DF map and keeping terms matching the literal prefix and suffix around the star. This supports prefix (`comp*`), suffix (`*ing`), and infix (`c*ing`) patterns but not multiple stars. Expansion is a vocabulary scan, not a trie lookup.
+An unquoted word matches documents in its posting list. A word pattern may contain one `*`; prefix, suffix, and prefix-plus-suffix patterns use the trie for alphabetic terms, with vocabulary scanning for unsupported characters and multiple-star patterns.
 
-Quoted phrases are matched against tokenized `Document::text` when present, otherwise against the joined token vector. Phrase terms must occur consecutively in that source. This deliberately avoids relying on Worklet 1's stop-word-filtered tokens when raw text is available. A wildcard inside a phrase is expanded to matching vocabulary alternatives for that phrase position. The standalone positional index is not currently used by this query processor.
+Quoted phrases are matched against tokenized `Document::text` when present, otherwise against the joined token vector. Phrase terms must occur consecutively in that source. This deliberately avoids relying on Worklet 1's stop-word-filtered tokens when raw text is available. A wildcard inside a phrase is expanded to matching vocabulary alternatives for that phrase position.
 
 The query result has `candidates` (document ID to frequencies for query/expanded terms present in that candidate) and `doc_freq` (term to corpus document frequency). These are ranking inputs, not ranked results. For an unmatched nonempty query term, the term can still appear in `doc_freq` with value zero.
 
@@ -118,10 +118,9 @@ make -C wl2 benchmark   # compile and run intersection timing scenarios
 
 ## Current boundaries and implementation notes
 
-* The main demo builds a true positional inverted index, but the query API currently builds frequency/DF maps independently from `Document` records.
+* The query API builds the positional inverted index and trie alongside frequency/DF metadata from `Document` records.
 * Phrase matching uses source text or joined tokens, not the positional postings structure.
-* Wildcard query expansion scans the query processor vocabulary; the trie and query engine are not integrated.
-* Boolean query evaluation uses `std::set<int>`; `PostingsOperations` is a separate sorted-list implementation and is not called by it.
+* Boolean query set composition delegates to `PostingsOperations`; its parser-facing adapter currently represents intermediate phrase and document sets as posting lists.
 * The corpus reader recognizes a `text` field if present and has a token-join fallback for snippets. Worklet 1's JSONL shape should be checked when integrating the actual corpus.
 * There is no end-to-end target that builds the trie, parser, bridge, and Worklet 3 together. The implemented bridge API is a useful boundary, but the Makefile currently validates only the postings operations by default.
 

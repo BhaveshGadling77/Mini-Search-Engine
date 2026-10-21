@@ -92,7 +92,7 @@ static void print_wrapped(const std::string &s, size_t width = 80) {
 }
 
 int main(int argc, char **argv) {
-    const std::string corpus = argc > 1 ? argv[1] : "/home/bhavesh/Mini-Search-Engine/data/crawler.json";
+    const std::string corpus = argc > 1 ? argv[1] : "./data/crawler.json";
     auto docs = readDocuments(corpus);
     if (docs.empty()) {
         std::cerr << "No documents loaded from " << corpus << "\n";

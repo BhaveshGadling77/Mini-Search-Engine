@@ -19,6 +19,7 @@ def test_append_writes_json_line(tmp_path):
         url="https://example.com/",
         text="hello world",
         tokens=("hello", "world"),
+        token_segments=(("hello", "world"),),
         meta={"crawled_at": "2026-09-10T00:00:00Z", "content_length": 11, "status": "ok", "depth": 0},
     )
     with JSONLStore(path) as store:
@@ -39,10 +40,11 @@ def test_to_dict_matches_schema():
         url="u",
         text="t",
         tokens=(),
+        token_segments=(),
         meta={"crawled_at": "2026-09-10T00:00:00Z", "content_length": 1, "status": "ok", "depth": 1},
     )
     record = doc.to_dict()
-    assert set(record) == {"doc_id", "url", "text", "tokens", "meta"}
+    assert set(record) == {"doc_id", "url", "text", "tokens", "token_segments", "meta"}
     # tokens serialized as list in JSON, even though stored as tuple
     assert isinstance(record["tokens"], list)
 
