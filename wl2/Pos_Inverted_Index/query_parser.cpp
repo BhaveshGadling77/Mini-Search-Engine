@@ -17,6 +17,36 @@ std::string normalize(std::string value) {
         c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
     return value;
 }
+
+bool wildcard_matches(const std::string &value, const std::string &pattern) {
+    const std::string normalized_value = normalize(value);
+    const std::string normalized_pattern = normalize(pattern);
+    size_t value_index = 0;
+    size_t pattern_index = 0;
+    size_t star_index = std::string::npos;
+    size_t value_match = 0;
+    while (value_index < normalized_value.size()) {
+        if (pattern_index < normalized_pattern.size() && normalized_pattern[pattern_index] == '*') {
+            star_index = pattern_index;
+            value_match = value_index;
+            ++pattern_index;
+        } else if (pattern_index < normalized_pattern.size() &&
+                   normalized_pattern[pattern_index] == normalized_value[value_index]) {
+            ++pattern_index;
+            ++value_index;
+        } else if (star_index != std::string::npos) {
+            pattern_index = star_index + 1;
+            ++value_match;
+            value_index = value_match;
+        } else {
+            return false;
+        }
+    }
+    while (pattern_index < normalized_pattern.size() && normalized_pattern[pattern_index] == '*')
+        ++pattern_index;
+    return pattern_index == normalized_pattern.size();
+}
+
 std::vector<std::string> split_words(const std::string &input) {
     return wl2::process_text(input);
 }
@@ -31,6 +61,45 @@ std::vector<std::string> terms_for_document(const Document &doc) {
         joined += token;
     }
     return split_words(joined);
+}
+
+std::vector<std::string> document_tokens(const Document &doc) {
+    if (!doc.text.empty())
+        return wl2::tokenize(doc.text);
+    std::vector<std::string> tokens;
+    tokens.reserve(doc.tokens.size());
+    for (const auto &token : doc.tokens)
+        tokens.push_back(normalize(token));
+    return tokens;
+}
+
+std::vector<std::vector<std::string>> sentence_tokens_for_document(const Document &doc) {
+    std::vector<std::vector<std::string>> sentences;
+    if (!doc.text.empty()) {
+        std::string current;
+        current.reserve(doc.text.size());
+        for (char c : doc.text) {
+            current.push_back(c);
+            if (c == '.' || c == '!' || c == '?') {
+                if (!current.empty()) {
+                    const auto tokens = wl2::tokenize(current);
+                    if (!tokens.empty())
+                        sentences.push_back(tokens);
+                    current.clear();
+                }
+            }
+        }
+        if (!current.empty()) {
+            const auto tokens = wl2::tokenize(current);
+            if (!tokens.empty())
+                sentences.push_back(tokens);
+        }
+    }
+    if (!sentences.empty())
+        return sentences;
+    if (!doc.tokens.empty())
+        return {doc.tokens};
+    return {};
 }
 
 struct Token {
@@ -180,20 +249,15 @@ class QueryParser {
         throw std::runtime_error("Expected a term or phrase.");
     }
     std::vector<std::string> expand(const std::string &pattern) const {
-        if (pattern.find('*') == std::string::npos)
-            return df.count(pattern) ? std::vector<std::string>{pattern}
-                                     : std::vector<std::string>{};
-        if (pattern.find('*', pattern.find('*') + 1) != std::string::npos)
-            return {};
-        const size_t star = pattern.find('*');
-        const std::string prefix = pattern.substr(0, star), suffix = pattern.substr(star + 1);
         std::vector<std::string> result;
+        if (pattern.find('*') == std::string::npos) {
+            if (df.count(pattern))
+                result.push_back(pattern);
+            return result;
+        }
         for (const auto &entry : df) {
-            const auto &term = entry.first;
-            if (term.size() >= prefix.size() + suffix.size() &&
-                term.compare(0, prefix.size(), prefix) == 0 &&
-                term.compare(term.size() - suffix.size(), suffix.size(), suffix) == 0)
-                result.push_back(term);
+            if (wildcard_matches(entry.first, pattern))
+                result.push_back(entry.first);
         }
         std::sort(result.begin(), result.end());
         return result;
@@ -207,38 +271,44 @@ class QueryParser {
         return result;
     }
     IdSet phrase_matches(const std::string &phrase) const {
-        const auto phrase_terms = split_words(phrase);
+        const auto phrase_terms = wl2::tokenize(phrase);
         if (phrase_terms.empty() || !docs)
             return {};
         std::vector<std::vector<std::string>> alternatives;
         for (const auto &word : phrase_terms) {
             if (word.find('*') == std::string::npos)
-                alternatives.push_back({word});
-            else
-                alternatives.push_back(expand(word));
+                alternatives.push_back({normalize(word)});
+            else {
+                std::vector<std::string> matches;
+                for (const auto &entry : df)
+                    if (wildcard_matches(entry.first, word))
+                        matches.push_back(entry.first);
+                if (matches.empty())
+                    return {};
+                alternatives.push_back(matches);
+            }
         }
-        if (std::any_of(alternatives.begin(), alternatives.end(),
-                        [](const auto &a) { return a.empty(); }))
-            return {};
         IdSet result;
         for (const auto &doc : *docs) {
-            // Document::tokens has stop words removed by Worklet 1, so it cannot
-            // preserve exact phrase positions. Prefer the original page text.
-            // Hand-built/test documents may only provide tokens, so retain that
-            // as a fallback.
-            const auto indexed_terms = terms_for_document(doc);
-            if (indexed_terms.size() < phrase_terms.size())
-                continue;
-            for (size_t start = 0; start + phrase_terms.size() <= indexed_terms.size(); ++start) {
-                bool match = true;
-                for (size_t offset = 0; offset < phrase_terms.size() && match; ++offset) {
-                    const std::string &token = indexed_terms[start + offset];
-                    match = std::find(alternatives[offset].begin(), alternatives[offset].end(),
-                                      token) != alternatives[offset].end();
-                }
-                if (match) {
-                    result.insert(doc.docId);
-                    break;
+            const auto sentences = sentence_tokens_for_document(doc);
+            for (const auto &sentence : sentences) {
+                if (sentence.size() < phrase_terms.size())
+                    continue;
+                for (size_t start = 0; start + phrase_terms.size() <= sentence.size(); ++start) {
+                    bool match = true;
+                    for (size_t offset = 0; offset < phrase_terms.size() && match; ++offset) {
+                        const std::string token = normalize(sentence[start + offset]);
+                        const auto &allowed = alternatives[offset];
+                        match = std::any_of(allowed.begin(), allowed.end(),
+                                             [&](const std::string &candidate) {
+                                                 return candidate == token ||
+                                                        wildcard_matches(token, candidate);
+                                             });
+                    }
+                    if (match) {
+                        result.insert(doc.docId);
+                        break;
+                    }
                 }
             }
         }
@@ -289,18 +359,12 @@ QueryResult resolve_query(const std::string &query) {
     }
     std::set<std::string> expanded_terms;
     for (const auto &word : query_terms) {
-        if (word.find('*') == std::string::npos)
-            expanded_terms.insert(word);
-        else {
-            const size_t star = word.find('*');
-            const std::string prefix = word.substr(0, star), suffix = word.substr(star + 1);
-            for (const auto &entry : df)
-                if (entry.first.size() >= prefix.size() + suffix.size() &&
-                    entry.first.compare(0, prefix.size(), prefix) == 0 &&
-                    entry.first.compare(entry.first.size() - suffix.size(), suffix.size(),
-                                        suffix) == 0)
-                    expanded_terms.insert(entry.first);
+        for (const auto &term : df) {
+            if (wildcard_matches(term.first, word))
+                expanded_terms.insert(term.first);
         }
+        if (word.find('*') == std::string::npos && df.count(word))
+            expanded_terms.insert(word);
     }
     for (const auto &word : expanded_terms)
         result.doc_freq[word] = df[word];

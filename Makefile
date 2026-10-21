@@ -1,13 +1,14 @@
 CXX ?= g++
 CXXFLAGS ?= -std=c++17 -Wall -Wextra -O2
 
-ROOT := ..
+ROOT := .
 BUILD := $(ROOT)/build
 
-W2 := Inverted_Index
-OPS := boolean_operations
-PARSER := Pos_Inverted_Index
-TEXT := lib/src/libfreeling/text_processing.cc
+W2 := wl2/Inverted_Index
+OPS := wl2/boolean_operations
+PARSER := wl2/Pos_Inverted_Index
+TEXT := wl2/lib/src/libfreeling/text_processing.cc
+TRIE := wl2/trie
 
 .PHONY: all cli test test-wl2 run clean pybind
 
@@ -38,8 +39,8 @@ $(BUILD)/postings_benchmark: $(ROOT)/tests/wl2/PostingsOperationsBenchmark.cpp $
 	$(CXX) $(CXXFLAGS) -I$(W2) -I$(OPS) $^ -o $@
 
 # Trie tests
-$(BUILD)/trie_test: trie/trietests.cpp trie/trie.cpp | $(BUILD)
-	$(CXX) $(CXXFLAGS) -Itrie $^ -o $@
+$(BUILD)/trie_test: $(TRIE)/trietests.cpp $(TRIE)/trie.cpp | $(BUILD)
+	$(CXX) $(CXXFLAGS) -I$(TRIE) $^ -o $@
 
 test-wl2: $(BUILD)/bridge_test $(BUILD)/postings_test $(BUILD)/trie_test
 	./$(BUILD)/bridge_test
