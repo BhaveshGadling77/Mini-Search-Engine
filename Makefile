@@ -18,8 +18,8 @@ $(BUILD):
 	mkdir -p $(BUILD)
 
 # cli search application
-$(BUILD)/search_cli: $(ROOT)/cli/main.cpp $(W2)/CorpusReader.cpp $(W2)/HashMap.cpp $(W2)/Posting.cpp $(PARSER)/query_parser.cpp $(TEXT) | $(BUILD)
-	$(CXX) $(CXXFLAGS) -I$(W2) -I$(PARSER) $^ -o $@
+$(BUILD)/search_cli: $(ROOT)/cli/main.cpp $(W2)/CorpusReader.cpp $(W2)/HashMap.cpp $(W2)/Posting.cpp $(W2)/Inverted_Index.cpp $(OPS)/PostingsOperations.cpp $(TRIE)/trie.cpp $(PARSER)/query_parser.cpp $(TEXT) | $(BUILD)
+	$(CXX) $(CXXFLAGS) -I$(W2) -I$(PARSER) -I$(OPS) -I$(TRIE) $^ -o $@
 
 cli: $(BUILD)/search_cli
 
@@ -27,8 +27,8 @@ run: cli
 	./$(BUILD)/search_cli $(CORPUS)
 
 # Worklet 3 bridge test
-$(BUILD)/bridge_test: $(ROOT)/tests/wl2/Worklet3BridgeTest.cpp $(W2)/CorpusReader.cpp $(PARSER)/query_parser.cpp $(TEXT) | $(BUILD)
-	$(CXX) $(CXXFLAGS) -I$(W2) -I$(PARSER) $^ -o $@
+$(BUILD)/bridge_test: $(ROOT)/tests/wl2/Worklet3BridgeTest.cpp $(W2)/CorpusReader.cpp $(W2)/HashMap.cpp $(W2)/Posting.cpp $(W2)/Inverted_Index.cpp $(OPS)/PostingsOperations.cpp $(TRIE)/trie.cpp $(PARSER)/query_parser.cpp $(TEXT) | $(BUILD)
+	$(CXX) $(CXXFLAGS) -I$(W2) -I$(PARSER) -I$(OPS) -I$(TRIE) $^ -o $@
 
 # Posting operations tests
 $(BUILD)/postings_test: $(ROOT)/tests/wl2/QueryPostingsOperationsTest.cpp $(OPS)/PostingsOperations.cpp $(W2)/Posting.cpp | $(BUILD)
@@ -59,8 +59,14 @@ pybind:
 	mkdir -p $(BUILD); \
 	$(CXX) $(CXXFLAGS) -shared -fPIC $$PYBIND_INCLUDES \
 		-I$(W2) -I$(PARSER) \
+		-I$(OPS) -I$(TRIE) \
 		$(PARSER)/python_bindings.cpp \
 		$(W2)/CorpusReader.cpp \
+		$(W2)/HashMap.cpp \
+		$(W2)/Posting.cpp \
+		$(W2)/Inverted_Index.cpp \
+		$(OPS)/PostingsOperations.cpp \
+		$(TRIE)/trie.cpp \
 		$(PARSER)/query_parser.cpp \
 		$(TEXT) \
 		-o $(BUILD)/wl2bridge$$(python3-config --extension-suffix)

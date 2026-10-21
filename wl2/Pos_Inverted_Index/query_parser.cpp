@@ -1,21 +1,33 @@
 #include "query_parser.h"
+#include "../Inverted_Index/Inverted_Index.h"
+#include "../boolean_operations/PostingsOperations.h"
+#include "../trie/trie.h"
 #include "../lib/src/include/text_processing.h"
 #include <algorithm>
 #include <cctype>
 #include <cstdint>
 #include <set>
 #include <stdexcept>
+#include <memory>
 
 namespace {
 const std::vector<Document> *docs = nullptr;
 std::unordered_map<int, std::unordered_map<std::string, int>> terms;
 std::unordered_map<std::string, int> df;
+std::unique_ptr<Inverted_Index> inverted_index;
+std::unique_ptr<Trie> vocabulary_trie;
 std::string version = "uninitialized";
 
 std::string normalize(std::string value) {
     for (char &c : value)
         c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
     return value;
+}
+
+bool trie_word(const std::string &word) {
+    return !word.empty() && std::all_of(word.begin(), word.end(), [](unsigned char c) {
+        return c >= 'a' && c <= 'z';
+    });
 }
 
 bool wildcard_matches(const std::string &value, const std::string &pattern) {
@@ -163,14 +175,28 @@ std::vector<Token> lex(const std::string &query) {
 }
 using IdSet = std::set<int>;
 IdSet set_union_of(const IdSet &a, const IdSet &b) {
-    IdSet r = a;
-    r.insert(b.begin(), b.end());
-    return r;
+    PostingList left, right;
+    for (int id : a) left.addOccurrence(id, 0);
+    for (int id : b) right.addOccurrence(id, 0);
+    left.sortPostings(); right.sortPostings();
+    auto ids = PostingsOperations::extract_doc_ids(PostingsOperations::union_(left, right));
+    return IdSet(ids.begin(), ids.end());
 }
 IdSet set_intersection_of(const IdSet &a, const IdSet &b) {
-    IdSet r;
-    std::set_intersection(a.begin(), a.end(), b.begin(), b.end(), std::inserter(r, r.begin()));
-    return r;
+    PostingList left, right;
+    for (int id : a) left.addOccurrence(id, 0);
+    for (int id : b) right.addOccurrence(id, 0);
+    left.sortPostings(); right.sortPostings();
+    auto ids = PostingsOperations::extract_doc_ids(PostingsOperations::intersect(left, right));
+    return IdSet(ids.begin(), ids.end());
+}
+IdSet set_difference_of(const IdSet &a, const IdSet &b) {
+    PostingList left, right;
+    for (int id : a) left.addOccurrence(id, 0);
+    for (int id : b) right.addOccurrence(id, 0);
+    left.sortPostings(); right.sortPostings();
+    auto ids = PostingsOperations::extract_doc_ids(PostingsOperations::difference(left, right));
+    return IdSet(ids.begin(), ids.end());
 }
 
 class QueryParser {
@@ -229,9 +255,7 @@ class QueryParser {
             ++position_;
             IdSet result = all_docs();
             const IdSet excluded = parse_unary();
-            for (int id : excluded)
-                result.erase(id);
-            return result;
+            return set_difference_of(result, excluded);
         }
         if (tokens_[position_].type == Token::LEFT) {
             ++position_;
@@ -255,19 +279,32 @@ class QueryParser {
                 result.push_back(pattern);
             return result;
         }
-        for (const auto &entry : df) {
-            if (wildcard_matches(entry.first, pattern))
-                result.push_back(entry.first);
+        if (vocabulary_trie && pattern.find('*') == pattern.rfind('*')) {
+            const size_t star = pattern.find('*');
+            const auto prefix = pattern.substr(0, star), suffix = pattern.substr(star + 1);
+            if ((!prefix.empty() && !trie_word(prefix)) || (!suffix.empty() && !trie_word(suffix))) {
+                for (const auto &entry : df) if (wildcard_matches(entry.first, pattern)) result.push_back(entry.first);
+            } else if (prefix.empty() && suffix.empty()) {
+                for (const auto &entry : df) result.push_back(entry.first);
+            } else if (!prefix.empty() && !suffix.empty()) result = vocabulary_trie->searchForWildCard(prefix, suffix);
+            else if (!prefix.empty()) result = vocabulary_trie->searchForPrefix(prefix);
+            else if (!suffix.empty()) result = vocabulary_trie->searchForSuffix(suffix);
+        } else {
+            for (const auto &entry : df)
+                if (wildcard_matches(entry.first, pattern)) result.push_back(entry.first);
         }
+        result.erase(std::remove_if(result.begin(), result.end(), [&](const auto &term) { return !df.count(term); }), result.end());
         std::sort(result.begin(), result.end());
         return result;
     }
     IdSet term_matches(const std::string &pattern) const {
         IdSet result;
-        for (const auto &term : expand(pattern))
-            for (const auto &doc : terms)
-                if (doc.second.count(term))
-                    result.insert(doc.first);
+        PostingList combined;
+        for (const auto &term : expand(pattern)) {
+            PostingList *posting = inverted_index ? inverted_index->get(term) : nullptr;
+            if (posting) combined = PostingsOperations::union_(combined, *posting);
+        }
+        for (int id : PostingsOperations::extract_doc_ids(combined)) result.insert(id);
         return result;
     }
     IdSet phrase_matches(const std::string &phrase) const {
@@ -321,10 +358,15 @@ void initialize_query_processor(const std::vector<Document> *input) {
     docs = input;
     terms.clear();
     df.clear();
+    inverted_index.reset();
+    vocabulary_trie.reset();
     if (!docs) {
         version = "uninitialized";
         return;
     }
+    inverted_index = std::make_unique<Inverted_Index>();
+    inverted_index->build(*docs);
+    vocabulary_trie = std::make_unique<Trie>();
     uint64_t hash = 14695981039346656037ULL;
     for (const auto &doc : *docs) {
         auto &counts = terms[doc.docId];
@@ -332,6 +374,10 @@ void initialize_query_processor(const std::vector<Document> *input) {
         hash *= 1099511628211ULL;
         for (const auto &token : terms_for_document(doc)) {
             ++counts[token];
+            if (trie_word(token)) {
+                vocabulary_trie->insert(token);
+                vocabulary_trie->insertReversed(token);
+            }
             for (unsigned char c : token) {
                 hash ^= c;
                 hash *= 1099511628211ULL;
