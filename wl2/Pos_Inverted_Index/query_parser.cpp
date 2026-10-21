@@ -21,6 +21,18 @@ std::vector<std::string> split_words(const std::string &input) {
     return wl2::process_text(input);
 }
 
+std::vector<std::string> terms_for_document(const Document &doc) {
+    if (!doc.text.empty())
+        return split_words(doc.text);
+    std::string joined;
+    for (const auto &token : doc.tokens) {
+        if (!joined.empty())
+            joined += ' ';
+        joined += token;
+    }
+    return split_words(joined);
+}
+
 struct Token {
     enum Type { WORD, PHRASE, AND, OR, NOT, LEFT, RIGHT } type;
     std::string value;
@@ -61,17 +73,19 @@ std::vector<Token> lex(const std::string &query) {
                     break;
                 ++i;
             }
-            std::string word = normalize(query.substr(start, i - start));
-            if (word == "and")
-                result.push_back({Token::AND, word});
-            else if (word == "or")
-                result.push_back({Token::OR, word});
-            else if (word == "not")
-                result.push_back({Token::NOT, word});
-            else
+            const std::string raw_word = query.substr(start, i - start);
+            if (raw_word == "AND")
+                result.push_back({Token::AND, raw_word});
+            else if (raw_word == "OR")
+                result.push_back({Token::OR, raw_word});
+            else if (raw_word == "NOT")
+                result.push_back({Token::NOT, raw_word});
+            else {
+                const std::string word = normalize(raw_word);
                 if (word.find('*') != std::string::npos || !wl2::is_stopword(word))
                     result.push_back({Token::WORD, word.find('*') == std::string::npos
                                                       ? wl2::lemmatize(word) : word});
+            }
             continue;
         }
         ++i;
@@ -212,20 +226,13 @@ class QueryParser {
             // preserve exact phrase positions. Prefer the original page text.
             // Hand-built/test documents may only provide tokens, so retain that
             // as a fallback.
-            const auto document_terms = split_words(doc.text.empty() ? [&doc]() {
-                std::string joined;
-                for (const auto &token : doc.tokens) {
-                    if (!joined.empty()) joined += ' ';
-                    joined += token;
-                }
-                return joined;
-            }() : doc.text);
-            if (document_terms.size() < phrase_terms.size())
+            const auto indexed_terms = terms_for_document(doc);
+            if (indexed_terms.size() < phrase_terms.size())
                 continue;
-            for (size_t start = 0; start + phrase_terms.size() <= document_terms.size(); ++start) {
+            for (size_t start = 0; start + phrase_terms.size() <= indexed_terms.size(); ++start) {
                 bool match = true;
                 for (size_t offset = 0; offset < phrase_terms.size() && match; ++offset) {
-                    const std::string &token = document_terms[start + offset];
+                    const std::string &token = indexed_terms[start + offset];
                     match = std::find(alternatives[offset].begin(), alternatives[offset].end(),
                                       token) != alternatives[offset].end();
                 }
@@ -253,9 +260,7 @@ void initialize_query_processor(const std::vector<Document> *input) {
         auto &counts = terms[doc.docId];
         hash ^= static_cast<uint64_t>(doc.docId);
         hash *= 1099511628211ULL;
-        for (const auto &raw : doc.tokens) {
-            if (wl2::is_stopword(raw)) continue;
-            const auto token = wl2::lemmatize(normalize(raw));
+        for (const auto &token : terms_for_document(doc)) {
             ++counts[token];
             for (unsigned char c : token) {
                 hash ^= c;
@@ -316,11 +321,7 @@ CorpusStats get_corpus_stats() {
     size_t total = 0;
     if (docs)
         for (const auto &doc : *docs)
-            total += doc.text.empty() ? wl2::process_text([&doc]() {
-                std::string joined;
-                for (const auto &token : doc.tokens) { if (!joined.empty()) joined += ' '; joined += token; }
-                return joined;
-            }()).size() : wl2::process_text(doc.text).size();
+            total += terms_for_document(doc).size();
     return {docs ? static_cast<int>(docs->size()) : 0,
             docs && !docs->empty() ? static_cast<double>(total) / docs->size() : 0.0};
 }
@@ -355,8 +356,8 @@ get_doc_terms(const std::vector<int> &ids) {
         for (const auto &doc : *docs)
             if (doc.docId == id) {
                 auto &counts = result[id];
-                for (const auto &token : doc.tokens)
-                    if (!wl2::is_stopword(token)) ++counts[wl2::lemmatize(normalize(token))];
+                for (const auto &token : terms_for_document(doc))
+                    ++counts[token];
                 break;
             }
     return result;

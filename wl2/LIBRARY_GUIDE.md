@@ -43,6 +43,9 @@ operators and wildcard syntax in the parser. Phrase text should also go through
 `process_text`, and document phrase text should use the same transformation.
 This means stopwords do not occupy positions in phrase matching, consistent
 with their omission from the index.
+Boolean operators are reserved in uppercase (`AND`, `OR`, `NOT`); lowercase
+forms are treated as stopwords. A single `*` can match an infix wildcard term,
+such as `f*x`.
 
 When changing the stopword list or lemmatizer, rebuild the index and keep query
 processing on the same library version. Existing serialized indexes contain
