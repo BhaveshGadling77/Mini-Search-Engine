@@ -1,6 +1,7 @@
 #include "../../wl2/Inverted_Index/CorpusReader.h"
 #include "../../wl2/Pos_Inverted_Index/query_parser.h"
 #include <cassert>
+#include <cstdio>
 #include <fstream>
 #include <iostream>
 int main() {
@@ -38,6 +39,26 @@ int main() {
     assert(q.candidates.size() == 1 && q.candidates.count(1));
     q = resolve_query("f*x AND \"red fox\"");
     assert(q.candidates.size() == 1 && q.candidates.count(1));
+
+    const char *sentence_path = "/tmp/mini_search_sentence_bridge_test.jsonl";
+    {
+        std::ofstream s(sentence_path);
+        s << R"({"doc_id":"10","title":"Sentence split","url":"https://sentence.test","text":"is dead. so","tokens":["is","dead","so"]})"
+          << '\n';
+        s << R"({"doc_id":"11","title":"Wildcard page","url":"https://wildcard.test","text":"nac anac banana","tokens":["nac","anac","banana"]})"
+          << '\n';
+    }
+    auto sentence_docs = readDocuments(sentence_path);
+    initialize_query_processor(&sentence_docs);
+    q = resolve_query("\"dead so\"");
+    assert(q.candidates.empty());
+    q = resolve_query("*nac*");
+    assert(q.candidates.size() == 1 && q.candidates.count(11));
+    q = resolve_query("\"the cat\"");
+    assert(q.candidates.empty());
+
+    std::remove(sentence_path);
+    initialize_query_processor(&docs);
     q = resolve_query("NOT dog");
     assert(q.candidates.size() == 1 && q.candidates.count(1));
     auto details = get_doc_snippet_data({1});

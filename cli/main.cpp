@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cmath>
+#include <chrono>
 #include <iostream>
 #include <string>
 #include <unordered_map>
@@ -91,7 +92,7 @@ static void print_wrapped(const std::string &s, size_t width = 80) {
 }
 
 int main(int argc, char **argv) {
-    const std::string corpus = argc > 1 ? argv[1] : "/home/bhavesh/Mini-Search-Engine/data/crawler.json";
+    const std::string corpus = argc > 1 ? argv[1] : "./data/crawler.json";
     auto docs = readDocuments(corpus);
     if (docs.empty()) {
         std::cerr << "No documents loaded from " << corpus << "\n";
@@ -107,6 +108,7 @@ int main(int argc, char **argv) {
             break;
         if (query.empty())
             continue;
+        const auto query_start = std::chrono::steady_clock::now();
         try {
             auto result = resolve_query(query);
             struct Hit {
@@ -127,12 +129,17 @@ int main(int argc, char **argv) {
                       [](const Hit &a, const Hit &b) { return a.score > b.score; });
             if (hits.empty()) {
                 std::cout << "No matches.\n";
+                const auto elapsed = std::chrono::duration<double, std::milli>(
+                    std::chrono::steady_clock::now() - query_start).count();
+                std::cout << "Query time: " << elapsed << " ms\n";
                 continue;
             }
             std::vector<int> ids;
             for (size_t i = 0; i < std::min<size_t>(10, hits.size()); ++i)
                 ids.push_back(hits[i].id);
             const auto snippets = get_doc_snippet_data(ids);
+            const auto elapsed = std::chrono::duration<double, std::milli>(
+                std::chrono::steady_clock::now() - query_start).count();
             for (size_t i = 0; i < ids.size(); ++i) {
                 const auto &d = snippets.at(ids[i]);
                 const auto &queryTerms = result.candidates.at(ids[i]);
@@ -141,8 +148,12 @@ int main(int argc, char **argv) {
                 print_wrapped(relevantSnippet(d.text, queryTerms), 80);
                 std::cout << "\n";
             }
+            std::cout << "Query time: " << elapsed << " ms\n";
         } catch (const std::exception &e) {
             std::cout << "Query error: " << e.what() << "\n";
+            const auto elapsed = std::chrono::duration<double, std::milli>(
+                std::chrono::steady_clock::now() - query_start).count();
+            std::cout << "Query time: " << elapsed << " ms\n";
         }
     }
     return 0;

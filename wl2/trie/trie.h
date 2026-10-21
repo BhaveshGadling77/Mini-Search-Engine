@@ -20,8 +20,7 @@ class TrieNode{
                 children[i] = nullptr;
             }
         }
-    }
-};
+    };
 
 class Trie{
     private:
