@@ -45,7 +45,7 @@ int main() {
         std::ofstream s(sentence_path);
         s << R"({"doc_id":"10","title":"Sentence split","url":"https://sentence.test","text":"is dead. so","tokens":["is","dead","so"]})"
           << '\n';
-        s << R"({"doc_id":"11","title":"Wildcard page","url":"https://wildcard.test","text":"nac anac banana engineering","tokens":["nac","anac","banana","engineering"]})"
+        s << R"({"doc_id":"11","title":"Wildcard page","url":"https://wildcard.test","text":"nac anac banana engineering prefix","tokens":["nac","anac","banana","engineering","prefix"]})"
           << '\n';
     }
     auto sentence_docs = readDocuments(sentence_path);
@@ -55,6 +55,12 @@ int main() {
     q = resolve_query("*nac*");
     assert(q.candidates.size() == 1 && q.candidates.count(11));
     q = resolve_query("en*ering");
+    assert(q.candidates.size() == 1 && q.candidates.count(11));
+    q = resolve_query("ban*");
+    assert(q.candidates.size() == 1 && q.candidates.count(11));
+    q = resolve_query("*ana");
+    assert(q.candidates.size() == 1 && q.candidates.count(11));
+    q = resolve_query("pre*fix");
     assert(q.candidates.size() == 1 && q.candidates.count(11));
     q = resolve_query("\"the cat\"");
     assert(q.candidates.empty());
