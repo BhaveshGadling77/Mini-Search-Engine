@@ -207,9 +207,6 @@ pyrightconfig.json
 
 # End of https://www.toptal.com/developers/gitignore/api/c++,python
 
-
-# cache files
-*.db
 # # Keep the Worklet 2 text-processing library in source control.
 # !wl2/lib/
 # !wl2/lib/src/
