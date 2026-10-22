@@ -443,6 +443,10 @@ void initialize_query_processor(const std::vector<Document> *input) {
         hash *= 1099511628211ULL;
         for (const auto &token : terms_for_document(doc)) {
             ++counts[token];
+            if (trie_word(token)) {
+                vocabulary_trie->insert(token);
+                vocabulary_trie->insertReversed(token);
+            }
             for (unsigned char c : token) {
                 hash ^= c;
                 hash *= 1099511628211ULL;
