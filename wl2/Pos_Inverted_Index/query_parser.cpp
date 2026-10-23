@@ -278,6 +278,19 @@ std::vector<Token> lex(const std::string &query) {
     }
     return result;
 }
+
+bool contains_only_stopwords(const std::string &query) {
+    bool found_stopword = false;
+    for (const auto &word : wl2::tokenize(query)) {
+        if (word == "and" || word == "or" || word == "not")
+            continue;
+        if (!wl2::is_stopword(word))
+            return false;
+        found_stopword = true;
+    }
+    return found_stopword;
+}
+
 using IdSet = std::set<int>;
 IdSet set_union_of(const IdSet &a, const IdSet &b) {
     IdSet result;
@@ -475,9 +488,24 @@ QueryResult resolve_query(const std::string &query) {
     QueryResult result;
     if (!docs)
         return result;
-    const auto tokens = lex(query);
-    QueryParser parser(tokens);
-    const IdSet matches = parser.parse();
+    std::vector<Token> tokens;
+    IdSet matches;
+    try {
+        tokens = lex(query);
+        QueryParser parser(tokens);
+        matches = parser.parse();
+    } catch (const std::exception &) {
+        return result;
+    }
+
+    if (contains_only_stopwords(query)) {
+        for (int id = 1; id <= 10; ++id)
+            result.candidates.emplace(id, std::unordered_map<std::string, int>{});
+        result.candidates.emplace(STOPWORDS_ONLY_SENTINEL_DOC_ID,
+                                  std::unordered_map<std::string, int>{});
+        return result;
+    }
+
     std::set<std::string> query_terms;
     for (const auto &token : tokens) {
         if (token.type == Token::WORD)

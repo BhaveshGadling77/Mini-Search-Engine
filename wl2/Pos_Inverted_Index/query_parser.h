@@ -4,6 +4,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+inline constexpr int STOPWORDS_ONLY_SENTINEL_DOC_ID = -1;
 using QueryCandidates = std::unordered_map<int, std::unordered_map<std::string, int>>;
 using DocumentFrequency = std::unordered_map<std::string, int>;
 struct QueryResult {

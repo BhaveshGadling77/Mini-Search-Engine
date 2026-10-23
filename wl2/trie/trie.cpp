@@ -141,7 +141,7 @@ vector<string> Trie::searchForPrefix(string word){
 vector<string> Trie::searchForSuffix(string word) {
     reverseWord(word);
     vector<string> result = getResults(word, revRoot);
-    for(int i = 0; i < result.size(); i++){
+    for(int i = 0; i < (int)result.size(); i++){
         reverseWord(result[i]);
     }
     return result;

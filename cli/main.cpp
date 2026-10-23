@@ -117,6 +117,8 @@ int main(int argc, char **argv) {
             };
             std::vector<Hit> hits;
             for (const auto &candidate : result.candidates) {
+                if (candidate.first == STOPWORDS_ONLY_SENTINEL_DOC_ID)
+                    continue;
                 double score = 0;
                 for (const auto &term : candidate.second) {
                     const int df = result.doc_freq[term.first];
@@ -135,7 +137,7 @@ int main(int argc, char **argv) {
                 continue;
             }
             std::vector<int> ids;
-            for (size_t i = 0; i < std::min<size_t>(10, hits.size()); ++i)
+            for (size_t i = 0; i < hits.size(); ++i)
                 ids.push_back(hits[i].id);
             const auto snippets = get_doc_snippet_data(ids);
             const auto elapsed = std::chrono::duration<double, std::milli>(
