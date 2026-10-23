@@ -9,12 +9,6 @@ using namespace std;
 PostingList::PostingList() {
 } 
 
-void PostingList::sortPostings() {
-    sort(postings.begin(), postings.end(),
-         [](const Posting& a, const Posting& b) {
-             return a.docId < b.docId;
-         });
-}
 
 void PostingList::addOccurrence(int docId, int pos) {
 
@@ -33,7 +27,7 @@ void PostingList::addOccurrence(int docId, int pos) {
     newPost.positions.push_back(pos);
     newPost.frequency = 1;
 
-   /* // Find the correct position by docId
+    // Find the correct position by docId
     auto it = postings.begin();
 
     while (it != postings.end() && it->docId < docId) {
@@ -42,8 +36,11 @@ void PostingList::addOccurrence(int docId, int pos) {
 
     // Insert in ascending order
     postings.insert(it, newPost);
-    */
-   postings.push_back(newPost);
+
+}
+
+void PostingList::appendSortedPosting(const Posting &posting) {
+    postings.push_back(posting);
 }
 
 const vector<Posting>& PostingList::get_all() const {

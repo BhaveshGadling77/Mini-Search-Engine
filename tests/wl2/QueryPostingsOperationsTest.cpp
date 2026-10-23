@@ -58,12 +58,27 @@ void test_basic_operations() {
                  {2, 4, 7});
     expect_equal("OR", PostingsOperations::extract_doc_ids(PostingsOperations::union_(a, b)),
                  {1, 2, 4, 5, 7});
+    expect_equal("skip OR",
+                 PostingsOperations::extract_doc_ids(PostingsOperations::union_with_skips(a, b)),
+                 {1, 2, 4, 5, 7});
     expect_equal("NOT A minus B",
                  PostingsOperations::extract_doc_ids(PostingsOperations::difference(a, b)), {1});
     expect_equal(
-        "skip AND",
+        "legacy skip-named OR",
         PostingsOperations::extract_doc_ids(PostingsOperations::intersect_with_skips(a, b)),
-        {2, 4, 7});
+        {1, 2, 4, 5, 7});
+    expect_equal("sqrt skip-named OR",
+                 PostingsOperations::extract_doc_ids(
+                     PostingsOperations::intersect_with_sqrt_skips(a, b)),
+                 {1, 2, 4, 5, 7});
+    expect_equal("fixed skip-named OR",
+                 PostingsOperations::extract_doc_ids(
+                     PostingsOperations::intersect_with_fixed_skips(a, b, 3)),
+                 {1, 2, 4, 5, 7});
+    expect_equal("exponential skip-named OR",
+                 PostingsOperations::extract_doc_ids(
+                     PostingsOperations::intersect_with_exponential_skips(a, b)),
+                 {1, 2, 4, 5, 7});
 }
 
 void test_empty_and_boundary_lists() {
@@ -75,6 +90,12 @@ void test_empty_and_boundary_lists() {
                  {});
     expect_equal("empty OR",
                  PostingsOperations::extract_doc_ids(PostingsOperations::union_(empty, values)),
+                 {3, 8, 13});
+    expect_equal("empty skip OR",
+                 PostingsOperations::extract_doc_ids(PostingsOperations::union_with_skips(empty, values)),
+                 {3, 8, 13});
+    expect_equal("skip OR empty",
+                 PostingsOperations::extract_doc_ids(PostingsOperations::union_with_skips(values, empty)),
                  {3, 8, 13});
     expect_equal("empty NOT",
                  PostingsOperations::extract_doc_ids(PostingsOperations::difference(empty, values)),
@@ -127,13 +148,28 @@ void test_many_sorted_inputs() {
         expect_equal(label + " OR",
                      PostingsOperations::extract_doc_ids(PostingsOperations::union_(a, b)),
                      expected_union(ids_a, ids_b));
+        expect_equal(label + " skip OR",
+                     PostingsOperations::extract_doc_ids(PostingsOperations::union_with_skips(a, b)),
+                     expected_union(ids_a, ids_b));
         expect_equal(label + " NOT",
                      PostingsOperations::extract_doc_ids(PostingsOperations::difference(a, b)),
                      expected_difference(ids_a, ids_b));
-        expect_equal(
-            label + " skip AND",
+    expect_equal(
+        label + " legacy skip-named OR",
             PostingsOperations::extract_doc_ids(PostingsOperations::intersect_with_skips(a, b)),
-            expected_intersection(ids_a, ids_b));
+        expected_union(ids_a, ids_b));
+        expect_equal(label + " sqrt skip-named OR",
+                     PostingsOperations::extract_doc_ids(
+                         PostingsOperations::intersect_with_sqrt_skips(a, b)),
+                     expected_union(ids_a, ids_b));
+        expect_equal(label + " fixed skip-named OR",
+                     PostingsOperations::extract_doc_ids(
+                         PostingsOperations::intersect_with_fixed_skips(a, b, 7)),
+                     expected_union(ids_a, ids_b));
+        expect_equal(label + " exponential skip-named OR",
+                     PostingsOperations::extract_doc_ids(
+                         PostingsOperations::intersect_with_exponential_skips(a, b)),
+                     expected_union(ids_a, ids_b));
     }
 }
 

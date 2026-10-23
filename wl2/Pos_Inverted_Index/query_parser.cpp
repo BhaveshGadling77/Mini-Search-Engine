@@ -6,9 +6,11 @@
 #include <algorithm>
 #include <cctype>
 #include <cstdint>
+#include <iterator>
 #include <set>
 #include <stdexcept>
 #include <memory>
+#include <utility>
 
 namespace {
 const std::vector<Document> *docs = nullptr;
@@ -61,6 +63,26 @@ bool wildcard_matches(const std::string &value, const std::string &pattern) {
 
 std::vector<std::string> split_words(const std::string &input) {
     return wl2::process_text(input);
+}
+
+std::string document_text(const Document &doc) {
+    if (!doc.text.empty())
+        return doc.text;
+    std::string text;
+    for (const auto &token : doc.tokens) {
+        if (!text.empty())
+            text += ' ';
+        text += token;
+    }
+    return text;
+}
+
+const Document *find_document(int id) {
+    if (!docs)
+        return nullptr;
+    const auto found = std::find_if(docs->begin(), docs->end(),
+                                    [id](const Document &doc) { return doc.docId == id; });
+    return found == docs->end() ? nullptr : &*found;
 }
 
 std::vector<std::string> canonicalize_trie_matches(const std::vector<std::string> &matches) {
@@ -155,15 +177,7 @@ std::vector<std::string> trie_expansion(const std::string &pattern) {
 }
 
 std::vector<std::string> terms_for_document(const Document &doc) {
-    if (!doc.text.empty())
-        return split_words(doc.text);
-    std::string joined;
-    for (const auto &token : doc.tokens) {
-        if (!joined.empty())
-            joined += ' ';
-        joined += token;
-    }
-    return split_words(joined);
+    return split_words(document_text(doc));
 }
 
 std::vector<std::string> document_tokens(const Document &doc) {
@@ -266,28 +280,17 @@ std::vector<Token> lex(const std::string &query) {
 }
 using IdSet = std::set<int>;
 IdSet set_union_of(const IdSet &a, const IdSet &b) {
-    PostingList left, right;
-    for (int id : a) left.addOccurrence(id, 0);
-    for (int id : b) right.addOccurrence(id, 0);
-    left.sortPostings(); right.sortPostings();
-    auto ids = PostingsOperations::extract_doc_ids(PostingsOperations::union_(left, right));
-    return IdSet(ids.begin(), ids.end());
+    IdSet result;
+    std::set_union(a.begin(), a.end(), b.begin(), b.end(),
+                   std::inserter(result, result.end()));
+    return result;
 }
-IdSet set_intersection_of(const IdSet &a, const IdSet &b) {
-    PostingList left, right;
-    for (int id : a) left.addOccurrence(id, 0);
-    for (int id : b) right.addOccurrence(id, 0);
-    left.sortPostings(); right.sortPostings();
-    auto ids = PostingsOperations::extract_doc_ids(PostingsOperations::intersect(left, right));
-    return IdSet(ids.begin(), ids.end());
-}
+
 IdSet set_difference_of(const IdSet &a, const IdSet &b) {
-    PostingList left, right;
-    for (int id : a) left.addOccurrence(id, 0);
-    for (int id : b) right.addOccurrence(id, 0);
-    left.sortPostings(); right.sortPostings();
-    auto ids = PostingsOperations::extract_doc_ids(PostingsOperations::difference(left, right));
-    return IdSet(ids.begin(), ids.end());
+    IdSet result;
+    std::set_difference(a.begin(), a.end(), b.begin(), b.end(),
+                        std::inserter(result, result.end()));
+    return result;
 }
 
 class QueryParser {
@@ -331,11 +334,15 @@ class QueryParser {
         while (position_ < tokens_.size()) {
             if (tokens_[position_].type == Token::AND) {
                 ++position_;
-                result = set_intersection_of(result, parse_unary());
-            } else if (starts_unary())
-                result = set_intersection_of(result, parse_unary());
-            else
+            } else if (!starts_unary()) {
                 break;
+            }
+
+            const IdSet right = parse_unary();
+            IdSet intersection;
+            std::set_intersection(result.begin(), result.end(), right.begin(), right.end(),
+                                  std::inserter(intersection, intersection.end()));
+            result = std::move(intersection);
         }
         return result;
     }
@@ -516,19 +523,11 @@ std::unordered_map<int, DocSnippetData> get_doc_snippet_data(const std::vector<i
     std::unordered_map<int, DocSnippetData> result;
     if (!docs)
         return result;
-    for (int id : ids)
-        for (const auto &doc : *docs)
-            if (doc.docId == id) {
-                DocSnippetData data{doc.title, doc.url, doc.text};
-                if (data.text.empty())
-                    for (const auto &token : doc.tokens) {
-                        if (!data.text.empty())
-                            data.text += ' ';
-                        data.text += token;
-                    }
-                result[id] = data;
-                break;
-            }
+    for (int id : ids) {
+        const Document *doc = find_document(id);
+        if (doc)
+            result[id] = {doc->title, doc->url, document_text(*doc)};
+    }
     return result;
 }
 std::unordered_map<int, std::unordered_map<std::string, int>>
@@ -536,13 +535,13 @@ get_doc_terms(const std::vector<int> &ids) {
     std::unordered_map<int, std::unordered_map<std::string, int>> result;
     if (!docs)
         return result;
-    for (int id : ids)
-        for (const auto &doc : *docs)
-            if (doc.docId == id) {
-                auto &counts = result[id];
-                for (const auto &token : terms_for_document(doc))
-                    ++counts[token];
-                break;
-            }
+    for (int id : ids) {
+        const Document *doc = find_document(id);
+        if (!doc)
+            continue;
+        auto &counts = result[id];
+        for (const auto &token : terms_for_document(*doc))
+            ++counts[token];
+    }
     return result;
 }

@@ -10,7 +10,7 @@ PARSER := wl2/Pos_Inverted_Index
 TEXT := wl2/lib/src/libfreeling/text_processing.cc
 TRIE := wl2/trie
 
-.PHONY: all cli test test-wl2 run clean pybind
+.PHONY: all cli test test-wl2 run clean pybind benchmark-union-skips
 
 all: cli
 
@@ -37,6 +37,13 @@ $(BUILD)/postings_test: $(ROOT)/tests/wl2/QueryPostingsOperationsTest.cpp $(OPS)
 # Posting operations benchmark
 $(BUILD)/postings_benchmark: $(ROOT)/tests/wl2/PostingsOperationsBenchmark.cpp $(OPS)/PostingsOperations.cpp $(W2)/Posting.cpp | $(BUILD)
 	$(CXX) $(CXXFLAGS) -I$(W2) -I$(OPS) $^ -o $@
+
+# Compare union with and without the skip-aware implementation.
+$(BUILD)/union_skip_benchmark: $(ROOT)/tests/wl2/UnionSkipBenchmark.cpp $(OPS)/PostingsOperations.cpp $(W2)/Posting.cpp | $(BUILD)
+	$(CXX) $(CXXFLAGS) -I$(W2) -I$(OPS) $^ -o $@
+
+benchmark-union-skips: $(BUILD)/union_skip_benchmark
+	./$(BUILD)/union_skip_benchmark
 
 # Trie tests
 $(BUILD)/trie_test: $(TRIE)/trietests.cpp $(TRIE)/trie.cpp | $(BUILD)

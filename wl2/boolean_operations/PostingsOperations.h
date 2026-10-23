@@ -9,7 +9,9 @@ class PostingsOperations {
     // Boolean operations consume and return the inverted index's PostingList type.
     static PostingList intersect(const PostingList &a, const PostingList &b);
     static PostingList union_(const PostingList &a, const PostingList &b);
+    static PostingList union_with_skips(const PostingList &a, const PostingList &b);
     static PostingList difference(const PostingList &a, const PostingList &b);
+    // Legacy skip-named entry points now return union semantics, matching union_().
     static PostingList intersect_with_skips(const PostingList &a, const PostingList &b);
 
     static std::vector<int> extract_doc_ids(const PostingList &list);

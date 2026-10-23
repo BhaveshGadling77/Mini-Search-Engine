@@ -123,7 +123,7 @@ void HashMap::sortAllPostingLists() {
         Entry* current = table[i];
 
         while (current != nullptr) {
-            current->value->sortPostings();
+            // current->value->sortPostings();
             current = current->next;
         }
     }
