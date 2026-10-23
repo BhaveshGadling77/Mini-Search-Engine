@@ -1,6 +1,7 @@
 """Tests for the Fetcher — mocked (no network required)."""
 
 import sys
+import time
 from pathlib import Path
 from unittest.mock import MagicMock, patch, call
 
@@ -166,4 +167,46 @@ def test_fetcher_uses_custom_user_agent():
     print(f"  Expected: User-Agent == '{custom_ua}'")
     print(f"  Actual:   User-Agent == '{actual_ua}'")
     assert actual_ua == custom_ua
+    print("  Status:   PASS [OK]")
+
+
+# ─── Robots & Politeness Tests ───────────────────────────────────────
+
+
+def test_fetch_skipped_when_robots_disallows():
+    """Verify a robots.txt disallow blocks the fetch without any HTTP call."""
+    print("\n[TEST] test_fetch_skipped_when_robots_disallows")
+    print("  Input:    URL='https://example.com/private', robots.txt disallows it")
+    fetcher = Fetcher(politeness_delay_s=0, respect_robots=True)
+    robots = MagicMock()
+    robots.can_fetch.return_value = False
+    with patch.object(Fetcher, "_load_robots", return_value=robots):
+        with patch.object(fetcher.session, "get") as mock_get:
+            result = fetcher.fetch("https://example.com/private")
+    print(f"  Expected: None, and no HTTP request made")
+    print(f"  Actual:   {result!r}, http_called={mock_get.called}")
+    assert result is None
+    assert not mock_get.called
+    print("  Status:   PASS [OK]")
+
+
+def test_fetch_politeness_sleeps_between_same_domain_requests():
+    """Verify a politeness delay is applied before a same-domain request."""
+    print("\n[TEST] test_fetch_politeness_sleeps_between_same_domain_requests")
+    print("  Input:    politeness_delay_s=2.0, same domain hit twice in a row")
+    fetcher = Fetcher(politeness_delay_s=2.0, respect_robots=False)
+    # Pretend a request to this domain just happened.
+    fetcher._last_request_time["example.com"] = time.monotonic()
+    with patch.object(
+        fetcher.session, "get", return_value=_make_response(200, "<html>ok</html>")
+    ):
+        with patch("crawler.fetcher.time.sleep") as mock_sleep:
+            html = fetcher.fetch("https://example.com/")
+    called = mock_sleep.called
+    delay = mock_sleep.call_args[0][0] if called else None
+    print(f"  Expected: sleep() called once with delay in (0, 2.0]")
+    print(f"  Actual:   called={called}, delay={delay!r}, html={html!r}")
+    assert called
+    assert 0 < delay <= 2.0
+    assert html == "<html>ok</html>"
     print("  Status:   PASS [OK]")
