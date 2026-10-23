@@ -29,9 +29,9 @@ from wl3.cache.cache_manager import CacheManager, build_cache_key
 from wl3.diversification.mmr import MMR
 from wl3.feedback.rocchio import Rocchio
 from wl3.feedback.session_manager import SessionManager
-from wl3.engine.models import RankedResult
+from wl3.engine.models import STOPWORD_NOTICE, RankedResult, SearchResults
 from wl3.engine.text import make_snippet, tokenize_query
-from wl3.integration.worklet2_adapter import Worklet2Adapter
+from wl3.integration.worklet2_adapter import STOPWORD_ONLY_DOC_ID, Worklet2Adapter
 from wl3.ranking.ranker import Ranker, RankingMode
 from wl3.ranking.vector import VectorScorer
 from wl3.retrieval.top_k import TopKRetriever
@@ -166,14 +166,14 @@ class QueryEngine:
         ranking_mode: str | RankingMode = "bm25",
         k: int = 10,
         use_mmr: bool = False,
-    ) -> list[RankedResult]:
+    ) -> SearchResults:
         """Run the full search pipeline; see module docstring."""
         mode = parse_ranking_mode(ranking_mode)
         if not isinstance(k, int) or k <= 0:
-            return []
+            return SearchResults()
         query_terms = tokenize_query(query)
         if not query_terms:
-            return []
+            return SearchResults()
 
         personalized = bool(session_id) and self.sessions.has_feedback(session_id)
 
@@ -184,7 +184,7 @@ class QueryEngine:
             if cached is not None:
                 with self._counter_lock:
                     self.cache_hits += 1
-                return list(cached)
+                return SearchResults(cached)
         with self._counter_lock:
             self.cache_misses += 1
 
@@ -193,8 +193,12 @@ class QueryEngine:
             boosts=self.sessions.get_term_boosts(session_id) if personalized else None,
         )
 
-        if key is not None:
-            self.cache.put(key, results)
+        if not isinstance(results, SearchResults):
+            results = SearchResults(results)
+        # Stopword-only answers carry a notice that the cache cannot store,
+        # and are cheap to rebuild, so they are never cached.
+        if key is not None and not results.notice:
+            self.cache.put(key, list(results))
         return results
 
     def mark_relevant(self, session_id: str, doc_id: int) -> bool:
@@ -259,6 +263,8 @@ class QueryEngine:
         boosts: dict[str, float] | None,
     ) -> list[RankedResult]:
         candidates, doc_freq = self.adapter.resolve_query(query)
+        if STOPWORD_ONLY_DOC_ID in candidates:
+            return self._stopword_only_results(candidates, k, query_terms)
         if not candidates:
             return []
 
@@ -320,6 +326,19 @@ class QueryEngine:
             final = [(sd.doc_id, sd.score) for sd in TopKRetriever.get_top_k(scores, k)]
 
         return self._build_results(final, query_terms)
+
+    def _stopword_only_results(
+        self, candidates: dict[int, dict[str, int]], k: int, query_terms: list[str]
+    ) -> SearchResults:
+        """
+        Worklet 2 flags a stopwords-only query by adding a candidate with doc id
+        ``STOPWORD_ONLY_DOC_ID`` next to the first 10 documents.  There is
+        nothing to rank: drop the marker, show those documents unscored (0.0)
+        in id order, and attach the notice.
+        """
+        doc_ids = sorted(d for d in candidates if d != STOPWORD_ONLY_DOC_ID)[:k]
+        results = self._build_results([(d, 0.0) for d in doc_ids], query_terms)
+        return SearchResults(results, notice=STOPWORD_NOTICE)
 
     def _build_results(
         self, final: list[tuple[int, float]], query_terms: list[str]
