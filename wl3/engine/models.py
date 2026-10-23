@@ -13,6 +13,23 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 
+STOPWORD_NOTICE = "This query only contains stopwords."
+
+
+class SearchResults(list):
+    """
+    ``list[RankedResult]`` plus an optional user-facing ``notice``.
+
+    Behaves exactly like the plain list ``QueryEngine.search`` always returned
+    (indexing, len, ==), so existing callers are unaffected; the CLI and Flask
+    layers additionally show ``notice`` when it is set.
+    """
+
+    def __init__(self, items=(), notice: str = "") -> None:
+        super().__init__(items)
+        self.notice = notice
+
+
 @dataclass
 class RankedResult:
     """

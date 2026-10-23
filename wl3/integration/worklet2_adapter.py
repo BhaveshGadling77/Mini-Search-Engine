@@ -25,6 +25,11 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
+# Worklet 2 contract: for a query made only of stopwords it returns the first
+# 10 documents plus one extra candidate with this doc id.  It is a marker, not a
+# real document: WL3 strips it and tells the user (see QueryEngine).
+STOPWORD_ONLY_DOC_ID = -1
+
 REQUIRED_FUNCTIONS = (
     "resolve_query",
     "get_corpus_stats",
