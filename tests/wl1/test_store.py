@@ -24,6 +24,7 @@ def test_append_writes_json_line(tmp_path):
     doc = Document(
         doc_id="000001",
         url="https://example.com/",
+        title="",
         text="hello world",
         tokens=("hello", "world"),
         token_segments=(("hello", "world"),),
@@ -50,6 +51,7 @@ def test_to_dict_matches_schema():
     doc = Document(
         doc_id="000001",
         url="u",
+        title="",
         text="t",
         tokens=(),
         token_segments=(),
@@ -57,7 +59,7 @@ def test_to_dict_matches_schema():
     )
     record = doc.to_dict()
     keys = set(record)
-    expected_keys = {"doc_id", "url", "text", "tokens", "token_segments", "meta"}
+    expected_keys = {"doc_id", "url", "title", "text", "tokens", "token_segments", "meta"}
     tokens_type = type(record["tokens"]).__name__
     print(f"  Input:    Document with empty tokens")
     print(f"  Expected: keys={expected_keys}, tokens type=list")
@@ -140,7 +142,7 @@ def test_document_is_frozen():
     """Verify Document is immutable (assigning to field raises)."""
     print("\n[TEST] test_document_is_frozen")
     doc = Document(
-        doc_id="000001", url="u", text="t", tokens=(), token_segments=(),
+        doc_id="000001", url="u", title="", text="t", tokens=(), token_segments=(),
         meta={"crawled_at": "2026-09-10T00:00:00Z", "content_length": 1, "status": "ok", "depth": 0},
     )
     print("  Input:    Document(frozen=True), attempt to set doc.url = 'new'")
@@ -177,7 +179,7 @@ def test_store_appends_multiple_documents(tmp_path):
     for i in range(1, 4):
         docs.append(Document(
             doc_id=Document.new_doc_id(i), url=f"https://example.com/p{i}",
-            text=f"page {i}", tokens=(f"page", f"{i}"), token_segments=((f"page", f"{i}"),),
+            title="", text=f"page {i}", tokens=(f"page", f"{i}"), token_segments=((f"page", f"{i}"),),
             meta={"crawled_at": "2026-09-10T00:00:00Z", "content_length": 6, "status": "ok", "depth": 0},
         ))
     print(f"  Input:    3 Documents with ids ['000001', '000002', '000003']")
@@ -200,7 +202,7 @@ def test_to_dict_token_segments_serialization():
     """Verify token_segments becomes list of lists in to_dict()."""
     print("\n[TEST] test_to_dict_token_segments_serialization")
     doc = Document(
-        doc_id="000001", url="u", text="t",
+        doc_id="000001", url="u", title="", text="t",
         tokens=("hello", "world"),
         token_segments=(("hello",), ("world",)),
         meta={"crawled_at": "2026-09-10T00:00:00Z", "content_length": 1, "status": "ok", "depth": 0},
@@ -224,7 +226,7 @@ def test_store_creates_parent_directory(tmp_path):
     path = os.path.join(tmp_path, "sub", "dir", "crawler.json")
     print(f"  Input:    path='{path}' (nested, non-existent)")
     doc = Document(
-        doc_id="000001", url="u", text="t", tokens=(), token_segments=(),
+        doc_id="000001", url="u", title="", text="t", tokens=(), token_segments=(),
         meta={"crawled_at": "2026-09-10T00:00:00Z", "content_length": 1, "status": "ok", "depth": 0},
     )
     with JSONLStore(path) as store:

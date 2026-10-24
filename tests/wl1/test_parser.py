@@ -81,7 +81,7 @@ def test_extract_links_handles_none():
 def test_parse_page_returns_text_and_links():
     """parse_page should return the same results as calling both functions."""
     print("\n[TEST] test_parse_page_returns_text_and_links")
-    text, links = parse_page(SAMPLE, "https://example.com/base")
+    _title, text, links = parse_page(SAMPLE, "https://example.com/base")
     plain = text.replace(SECTION_BREAK, " ")
     has_hello = "Hello World" in plain
     no_script = "should be stripped" not in text
@@ -101,10 +101,11 @@ def test_parse_page_returns_text_and_links():
 
 def test_parse_page_handles_none():
     print("\n[TEST] test_parse_page_handles_none")
-    text, links = parse_page(None, "https://example.com/")
+    title, text, links = parse_page(None, "https://example.com/")
     print(f"  Input:    html=None")
-    print(f"  Expected: text='', links=[]")
-    print(f"  Actual:   text={text!r}, links={links}")
+    print(f"  Expected: title='', text='', links=[]")
+    print(f"  Actual:   title={title!r}, text={text!r}, links={links}")
+    assert title == ""
     assert text == ""
     assert links == []
     print("  Status:   PASS [OK]")
@@ -246,7 +247,7 @@ def test_parse_page_with_nested_tables():
     </body></html>
     """
     print("  Input:    2x2 table with Cell1..Cell4")
-    text, links = parse_page(html, "https://example.com/")
+    _title, text, links = parse_page(html, "https://example.com/")
     fragments = [f.strip() for f in text.split(SECTION_BREAK) if f.strip()]
     print(f"  Expected: each cell in separate fragment")
     print(f"  Actual:   fragments={fragments}")

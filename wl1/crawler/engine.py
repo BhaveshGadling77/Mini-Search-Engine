@@ -2,7 +2,7 @@
 
 `CrawlEngine` ties the components together:
 
-    pop URL -> fetch -> parse (text + links) -> tokenize -> persist
+    pop URL -> fetch -> parse (title + text + links) -> tokenize -> persist
              -> enqueue unseen normalized outbound links
 
 It tracks BFS depth per URL and records it in each document's metadata.
@@ -71,8 +71,8 @@ class CrawlEngine:
                 logger.info("Skipped (fetch failed): %s", url)
                 continue
 
-            # Parse HTML once — extracts both text and links in a single pass
-            text, links = parse_page(html, url)
+            # Parse HTML once — extracts title, text, and links in a single pass
+            title, text, links = parse_page(html, url)
             segments = tokenize_segments(text)
             tokens = [t for seg in segments for t in seg]
 
@@ -80,6 +80,7 @@ class CrawlEngine:
             document = Document(
                 doc_id=Document.new_doc_id(self._doc_seq),
                 url=url,
+                title=title,
                 text=text,
                 tokens=tuple(tokens),
                 token_segments=tuple(tuple(seg) for seg in segments),

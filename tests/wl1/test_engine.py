@@ -19,9 +19,10 @@ from crawler.engine import CrawlEngine
 from crawler.store import JSONLStore
 
 
-def _page(body: str) -> str:
-    """Wrap ``body`` in a minimal HTML document."""
-    return f"<html><body>{body}</body></html>"
+def _page(body: str, title: str = "") -> str:
+    """Wrap ``body`` in a minimal HTML document with an optional title."""
+    head = f"<head><title>{title}</title></head>" if title else ""
+    return f"<html>{head}<body>{body}</body></html>"
 
 
 def _crawl(tmp_path, pages, *, seeds, **engine_kwargs):
