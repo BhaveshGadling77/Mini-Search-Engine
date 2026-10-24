@@ -218,3 +218,6 @@ pyrightconfig.json
 # wl2/lib/src/include/freeling/
 # wl2/lib/src/libfreeling/*.cc
 # !wl2/lib/src/libfreeling/text_processing.cc
+
+# worklet 3 binary files
+/data/wl3*
