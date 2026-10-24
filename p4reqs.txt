@@ -1,0 +1,66 @@
+Requirements Implemented
+
+Prefix and Suffix query should give correct results - nfr - done - demo id 1
+Infix wildcards must work for input of all sizes - nfr - done - demo id 2
+
+### METHODOLOGY & ENVIRONMENT
+
+- **Approach:** Requirement-driven and scenario-driven testing. Test cases were designed to verify document ingestion, tokenization, inverted index construction, query processing, and ranked search results. Scenarios included common keywords, absent keywords, repeated terms, empty queries, and documents containing multiple searchable terms.
+
+- **Environment & test data:** The application was tested in a C++ development environment using a compatible compiler and a predefined collection of sample text documents. The dataset included documents with overlapping keywords, unique terms, repeated words, and different document lengths.
+
+- **Test oracle:** Expected search results were determined manually for predefined queries.
+
+### INTEGRATION STRATEGY & WHY
+
+- **Strategy used:** Bottom-up integration testing.
+
+- **Why:** The search engine consists of dependent components such as text tokenization, inverted index construction, query processing. Bottom-up integration allows each component to be tested independently before connecting it to the next stage. This helps identify errors in token handling, index lookups, and result generation.
+
+- **Stubs / mocks / drivers:** Temporary test drivers and predefined document collections were used to test individual components. Mock or manually populated index entries could be used to test query processing before integration with the actual indexing module. Temporary drivers were replaced by the integrated application during end-to-end testing.
+
+TECHNIQUES
+
+Test framework: Unit testing was used to verify individual components, including tokenization, inverted index insertion and lookup, and query processing. Integration testing verified the flow from document ingestion through search-result generation. End-to-end tests checked whether user queries returned the expected matching documents in the correct order.
+
+REUSABLE TESTING FRAMEWORK / UTILITIES
+
+Structure: The testing utilities consist of module-specific test files, reusable sample document collections, predefined search queries, and helper functions for comparing actual results against expected document IDs and ranking order.
+
+How to reuse: The same test documents and query cases can be reused to validate changes to tokenization, inverted index construction, and query processing.
+
+Core principles applied - (Will have to check)
+
+Separation of concerns - Kept separate classes for Posting lISTS and posting lists operations
+
+Single responsibility & loose coupling
+
+Brief summary: Each component performs a specific task and communicates with other components through defined methods, reducing dependencies between modules.
+
+Class / module / decision + where: InvertedIndex handles index insertion and lookup, while QueryProcessor uses its public lookup interface to retrieve matching documents.
+
+Dry Reuse - Testing functions can be reused for eevry time new code is pushed.
+
+Error handling - Can add about how we used error handling to deal with escape sequences and other unicode characters
+
+Algorithmic Efficiency - 
+
+Integrated Testing - Unit and Integration Test Evidence
+
+Unit tests
+
+pre* gives results like present,pressure, prefix,expected
+*nac* gives results like (idk examples)
+
+Integration tests
+
+queries like pre* *ute, en*er, *nac* display the correct documents
+
+NFR
+
+Add your nfrs here as per the slide headings. i dont have any nfrs for tries specifically rn.
+
+NFR Measurement Evidence
+
+Add your evidences here if you have used any optimisation or tested with actual execution time
+
