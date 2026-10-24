@@ -1,0 +1,462 @@
+================================================================================
+ MINI SEARCH ENGINE - WORKLET 1 (CRAWLER) TEST SUITE
+ Date / Time : 2026-10-22 23:11:59
+ Target Dir  : D:\Coding\Projects\Mini-Search-Engine\tests\wl1
+ Python Exec : C:\Users\Shreyash\AppData\Local\Programs\Python\Python312\python.exe
+ Platform    : win32
+================================================================================
+============================= test session starts =============================
+platform win32 -- Python 3.12.7, pytest-8.4.0, pluggy-1.6.0 -- C:\Users\Shreyash\AppData\Local\Programs\Python\Python312\python.exe
+cachedir: .pytest_cache
+rootdir: D:\Coding\Projects\Mini-Search-Engine
+plugins: anyio-4.13.0, asyncio-1.4.0, cov-7.1.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 62 items
+
+tests/wl1/test_fetcher.py::test_fetch_returns_html_on_200 
+[TEST] test_fetch_returns_html_on_200
+  Input:    URL='https://example.com/', mock HTTP 200 with body '<html>ok</html>'
+  Expected: '<html>ok</html>'
+  Actual:   '<html>ok</html>'
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_fetcher.py::test_fetch_returns_none_on_404 
+[TEST] test_fetch_returns_none_on_404
+  Input:    URL='https://example.com/missing', mock HTTP 404
+  Expected: None
+  Actual:   None
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_fetcher.py::test_fetch_returns_none_on_request_exception 
+[TEST] test_fetch_returns_none_on_request_exception
+  Input:    URL='https://example.com/', mock ConnectionError('offline')
+  Expected: None
+  Actual:   None
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_fetcher.py::test_fetch_retries_on_503 
+[TEST] test_fetch_retries_on_503
+  Input:    URL='https://example.com/', mock [503, 200] sequence
+  Expected: '<html>retry-ok</html>'
+  Actual:   '<html>retry-ok</html>'
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_fetcher.py::test_fetch_respects_zero_delay 
+[TEST] test_fetch_respects_zero_delay
+  Input:    Fetcher(politeness_delay_s=0)
+  Expected: politeness_delay_s == 0
+  Actual:   politeness_delay_s == 0
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_fetcher.py::test_fetch_returns_none_on_timeout 
+[TEST] test_fetch_returns_none_on_timeout
+  Input:    URL='https://example.com/', mock Timeout exception
+  Expected: None
+  Actual:   None
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_fetcher.py::test_fetch_returns_none_on_500 
+[TEST] test_fetch_returns_none_on_500
+  Input:    URL='https://example.com/', mock HTTP 500 (all retries)
+  Expected: None
+  Actual:   None
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_fetcher.py::test_fetch_retries_on_429 
+[TEST] test_fetch_retries_on_429
+  Input:    URL='https://example.com/', mock [429, 200] sequence
+  Expected: '<html>rate-limit-ok</html>'
+  Actual:   '<html>rate-limit-ok</html>'
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_fetcher.py::test_fetcher_close_closes_session 
+[TEST] test_fetcher_close_closes_session
+  Input:    Fetcher.close()
+  Expected: session.close() called = True
+  Actual:   session.close() called = True
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_fetcher.py::test_fetcher_uses_custom_user_agent 
+[TEST] test_fetcher_uses_custom_user_agent
+  Input:    Fetcher(user_agent='TestBot/1.0')
+  Expected: User-Agent == 'TestBot/1.0'
+  Actual:   User-Agent == 'TestBot/1.0'
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_frontier.py::test_seeds_are_enqueued_and_normalized 
+[TEST] test_seeds_are_enqueued_and_normalized
+  Input:    seed='HTTPS://Example.COM:443/path#frag'
+  Expected: 'https://example.com/path'
+  Actual:   'https://example.com/path'
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_frontier.py::test_duplicate_urls_are_not_reenqueued 
+[TEST] test_duplicate_urls_are_not_reenqueued
+  Input:    seed='https://example.com/a', then add same URL again
+  Expected: add() returns None, len(frontier) == 1
+  Actual:   add() returned None, len(frontier) == 1
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_frontier.py::test_normalization_strips_fragment_and_port 
+[TEST] test_normalization_strips_fragment_and_port
+  Input:    'http://example.com:80/path#section'
+  Expected: 'http://example.com/path'
+  Actual:   'http://example.com/path'
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_frontier.py::test_normalization_rejects_non_http_schemes 
+[TEST] test_normalization_rejects_non_http_schemes
+  Input:    'ftp://example.com/file' and ''
+  Expected: both None
+  Actual:   ftp=None, empty=None
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_frontier.py::test_normalization_collapses_trailing_slash 
+[TEST] test_normalization_collapses_trailing_slash
+  Input:    'https://example.com/' and 'https://example.com//'
+  Expected: both 'https://example.com/'
+  Actual:   r1='https://example.com/', r2='https://example.com/'
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_frontier.py::test_allowed_domains_filter 
+[TEST] test_allowed_domains_filter
+  Input:    allowed_domains=['example.com'], add 'other.com' and 'example.com'
+  Expected: other.com -> None, example.com -> 'https://example.com/page'
+  Actual:   other.com -> None, example.com -> 'https://example.com/page'
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_frontier.py::test_pop_from_empty_returns_none 
+[TEST] test_pop_from_empty_returns_none
+  Input:    empty URLFrontier
+  Expected: pop() -> None, empty() -> True
+  Actual:   pop() -> None, empty() -> True
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_frontier.py::test_frontier_bfs_order 
+[TEST] test_frontier_bfs_order
+  Input:    seeds=['https://a.com/1', 'https://b.com/2', 'https://c.com/3']
+  Expected: ['https://a.com/1', 'https://b.com/2', 'https://c.com/3']
+  Actual:   ['https://a.com/1', 'https://b.com/2', 'https://c.com/3']
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_frontier.py::test_visited_property_tracks_all_added 
+[TEST] test_visited_property_tracks_all_added
+  Input:    added 3 unique URLs
+  Expected: len(visited) == 3
+  Actual:   len(visited) == 3, visited={'https://example.com/b', 'https://example.com/a', 'https://example.com/c'}
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_frontier.py::test_normalize_preserves_query_string 
+[TEST] test_normalize_preserves_query_string
+  Input:    'https://example.com/search?q=hello&lang=en'
+  Expected: query string preserved (contains '?q=hello&lang=en')
+  Actual:   'https://example.com/search?q=hello&lang=en'
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_frontier.py::test_normalize_handles_whitespace 
+[TEST] test_normalize_handles_whitespace
+  Input:    '  https://example.com/page  ' (with leading/trailing spaces)
+  Expected: 'https://example.com/page'
+  Actual:   'https://example.com/page'
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_frontier.py::test_len_reflects_queue_size 
+[TEST] test_len_reflects_queue_size
+  Input:    3 seeds -> pop 1 -> add 1
+  Expected: initial=3, after_pop=2, after_add=3
+  Actual:   initial=3, after_pop=2, after_add=3
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_parser.py::test_parse_html_strips_scripts_styles_and_tags 
+[TEST] test_parse_html_strips_scripts_styles_and_tags
+  Input:    HTML with <script>, <style>, <h1>, <p> tags
+  Expected: script text removed, visible text preserved
+  Actual:   script_removed=True, 'Hello World' present=True, 'test' present=True
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_parser.py::test_parse_html_handles_none_and_malformed 
+[TEST] test_parse_html_handles_none_and_malformed
+  Input:    None and '<<< not html >>>'
+  Expected: None -> '', malformed -> str (no exception)
+  Actual:   None -> '', malformed -> 'not html >>>' (type=str)
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_parser.py::test_extract_links_resolves_relative 
+[TEST] test_extract_links_resolves_relative
+  Input:    base_url='https://example.com/base', HTML with '/relative' and 'https://other.com/abs'
+  Expected: ['https://example.com/relative', 'https://other.com/abs'] in links
+  Actual:   ['https://example.com/relative', 'https://other.com/abs', 'https://example.com/base#frag']
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_parser.py::test_extract_links_handles_none 
+[TEST] test_extract_links_handles_none
+  Input:    html=None
+  Expected: []
+  Actual:   []
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_parser.py::test_parse_page_returns_text_and_links 
+[TEST] test_parse_page_returns_text_and_links
+  Input:    SAMPLE HTML, base='https://example.com/base'
+  Expected: text has 'Hello World', no script text; links have relative + absolute
+  Actual:   hello=True, no_script=True, relative_link=True, abs_link=True
+  Actual text (excerpt): 'Hello World This is a test page. Rel Abs Frag'...
+  Actual links: ['https://example.com/relative', 'https://other.com/abs', 'https://example.com/base#frag']
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_parser.py::test_parse_page_handles_none 
+[TEST] test_parse_page_handles_none
+  Input:    html=None
+  Expected: text='', links=[]
+  Actual:   text='', links=[]
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_parser.py::test_section_break_between_block_elements 
+[TEST] test_section_break_between_block_elements
+  Input:    <div>Contact</div><div>Support SEP</div>
+  Expected: SECTION_BREAK present, 'Contact' and 'Support' in separate fragments
+  Actual:   break_present=True, fragments=['Contact', 'Support SEP'], separate=True
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_parser.py::test_no_section_break_within_inline_content 
+[TEST] test_no_section_break_within_inline_content
+  Input:    <p>Contact <b>Support</b> here</p>
+  Expected: 'Contact' and 'Support' in same fragment
+  Actual:   fragments=['Contact Support here'], same_fragment=True
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_parser.py::test_section_break_footer_columns 
+[TEST] test_section_break_footer_columns
+  Input:    footer with <div>Contact</div> and <div>Support SEP</div>
+  Expected: 'Contact' and 'Support' NOT in same fragment
+  Actual:   fragments=['Main content here.', 'Contact', 'Support SEP'], incorrectly_merged=[]
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_parser.py::test_section_break_across_headings_and_paragraphs 
+[TEST] test_section_break_across_headings_and_paragraphs
+  Input:    <h1>Title</h1><p>Body text</p>
+  Expected: 'Title' and 'Body text' in different fragments
+  Actual:   fragments=['Title', 'Body text']
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_parser.py::test_section_break_list_items 
+[TEST] test_section_break_list_items
+  Input:    <ul> with 3 <li> items: Alpha, Beta, Gamma
+  Expected: each item in separate fragment, no merging
+  Actual:   fragments=['Alpha', 'Beta', 'Gamma']
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_parser.py::test_parse_html_strips_noscript 
+[TEST] test_parse_html_strips_noscript
+  Input:    <noscript>JS required</noscript><p>Visible</p>
+  Expected: noscript removed, 'Visible' present
+  Actual:   noscript_stripped=True, visible=True, text='Visible'
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_parser.py::test_extract_links_skips_empty_href 
+[TEST] test_extract_links_skips_empty_href
+  Input:    anchors with empty href, missing href, and '/valid'
+  Expected: '/valid' resolved, no crash from empty/missing href
+  Actual:   links=['https://example.com/valid']
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_parser.py::test_parse_page_with_nested_tables 
+[TEST] test_parse_page_with_nested_tables
+  Input:    2x2 table with Cell1..Cell4
+  Expected: each cell in separate fragment
+  Actual:   fragments=['Cell1', 'Cell2', 'Cell3', 'Cell4']
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_parser.py::test_parse_html_preserves_text_in_article 
+[TEST] test_parse_html_preserves_text_in_article
+  Input:    <article> with <h2>Headline</h2> and <p>Story body</p>
+  Expected: 'Headline' and 'Story body goes here' present
+  Actual:   headline=True, story=True, text='Headline Story body goes here.'
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_store.py::test_append_writes_json_line 
+[TEST] test_append_writes_json_line
+  Input:    Document(doc_id='000001', url='https://example.com/', tokens=('hello','world'))
+  Expected: 1 JSON line with doc_id='000001', tokens=['hello','world'], depth=0
+  Actual:   1 line(s), doc_id='000001', tokens=['hello', 'world'], depth=0
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_store.py::test_to_dict_matches_schema 
+[TEST] test_to_dict_matches_schema
+  Input:    Document with empty tokens
+  Expected: keys={'url', 'token_segments', 'text', 'doc_id', 'meta', 'tokens'}, tokens type=list
+  Actual:   keys={'url', 'token_segments', 'text', 'doc_id', 'meta', 'tokens'}, tokens type=list
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_store.py::test_corpus_path_mapped_to_data_dir 
+[TEST] test_corpus_path_mapped_to_data_dir
+  Input:    config.CORPUS_PATH = 'D:\\Coding\\Projects\\Mini-Search-Engine\\data\\crawler.json'
+  Expected: absolute path, basename='crawler.json', parent='data', DATA_DIR exists
+  Actual:   is_abs=True, basename='crawler.json', parent_dir='data', exists=True
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_store.py::test_new_doc_id_sequential_formatting 
+[TEST] test_new_doc_id_sequential_formatting
+  Input:    seq values [1, 2, 42, 100, 500]
+  Expected: ['000001', '000002', '000042', '000100', '000500']
+  Actual:   ['000001', '000002', '000042', '000100', '000500']
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_store.py::test_crawl_engine_sequential_doc_ids 
+[TEST] test_crawl_engine_sequential_doc_ids
+  Input:    2 mock pages, seeds=['https://example.com/p1'], max_pages=2
+  Expected: 2 docs with ids ['000001', '000002']
+  Actual:   2 docs with ids ['000001', '000002']
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_store.py::test_document_is_frozen 
+[TEST] test_document_is_frozen
+  Input:    Document(frozen=True), attempt to set doc.url = 'new'
+  Expected: AttributeError raised = True
+  Actual:   AttributeError raised = True
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_store.py::test_now_iso_format 
+[TEST] test_now_iso_format
+  Input:    Document.now_iso()
+  Expected: ISO 8601 format matching '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$'
+  Actual:   '2026-10-22T17:42:00Z', matches=True
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_store.py::test_store_appends_multiple_documents 
+[TEST] test_store_appends_multiple_documents
+  Input:    3 Documents with ids ['000001', '000002', '000003']
+  Expected: 3 lines with ids ['000001', '000002', '000003']
+  Actual:   3 lines with ids ['000001', '000002', '000003']
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_store.py::test_to_dict_token_segments_serialization 
+[TEST] test_to_dict_token_segments_serialization
+  Input:    token_segments=(('hello',), ('world',))
+  Expected: list of lists: [['hello'], ['world']]
+  Actual:   [['hello'], ['world']], outer_is_list=True, inner_are_lists=True
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_store.py::test_store_creates_parent_directory 
+[TEST] test_store_creates_parent_directory
+  Input:    path='C:\Users\Shreyash\AppData\Local\Temp\pytest-of-Shreyash\pytest-21\test_store_creates_parent_dire0\sub\dir\crawler.json' (nested, non-existent)
+  Expected: parent dir created, file written
+  Actual:   parent_exists=True, file_exists=True
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_tokenizer.py::test_tokenize_lowercases_and_strips_punctuation 
+[TEST] test_tokenize_lowercases_and_strips_punctuation
+  Input:    'Hello, WORLD! 123'
+  Expected: ['hello', 'world', '123']
+  Actual:   ['hello', 'world', '123']
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_tokenizer.py::test_tokenize_removes_stopwords 
+[TEST] test_tokenize_removes_stopwords
+  Input:    'the quick brown fox jumps over the lazy dog'
+  Expected: 'the', 'over' removed -> ['quick', 'brown', 'fox', 'jumps', 'lazy', 'dog']
+  Actual:   ['quick', 'brown', 'fox', 'jumps', 'lazy', 'dog']
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_tokenizer.py::test_tokenize_handles_empty_and_none 
+[TEST] test_tokenize_handles_empty_and_none
+  Input:    '' and None
+  Expected: tokenize('') == [], tokenize(None) == []
+  Actual:   empty -> [], None -> []
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_tokenizer.py::test_tokenize_segments_splits_on_sentinel 
+[TEST] test_tokenize_segments_splits_on_sentinel
+  Input:    'Contact<SECTION_BREAK>Support SEP'
+  Expected: [['contact'], ['support', 'sep']] (len=2)
+  Actual:   [['contact'], ['support', 'sep']] (len=2)
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_tokenizer.py::test_tokenize_segments_no_sentinel 
+[TEST] test_tokenize_segments_no_sentinel
+  Input:    'Hello World foo bar'
+  Expected: [['hello', 'world', 'foo', 'bar']]
+  Actual:   [['hello', 'world', 'foo', 'bar']]
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_tokenizer.py::test_tokenize_segments_empty_fragments_are_skipped 
+[TEST] test_tokenize_segments_empty_fragments_are_skipped
+  Input:    'Alpha<BREAK><BREAK><BREAK>Beta'
+  Expected: [['alpha'], ['beta']] (len=2)
+  Actual:   [['alpha'], ['beta']] (len=2)
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_tokenizer.py::test_tokenize_segments_stopwords_removed 
+[TEST] test_tokenize_segments_stopwords_removed
+  Input:    'the quick brown<BREAK>the lazy dog'
+  Expected: [['quick', 'brown'], ['lazy', 'dog']]
+  Actual:   [['quick', 'brown'], ['lazy', 'dog']]
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_tokenizer.py::test_tokenize_segments_handles_empty_and_none 
+[TEST] test_tokenize_segments_handles_empty_and_none
+  Input:    '' and None
+  Expected: tokenize_segments('') == [], tokenize_segments(None) == []
+  Actual:   empty -> [], None -> []
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_tokenizer.py::test_tokenize_flat_matches_segments 
+[TEST] test_tokenize_flat_matches_segments
+  Input:    'Hello World<BREAK>foo bar'
+  Expected: flat == flattened (['hello', 'world', 'foo', 'bar'])
+  Actual:   flat=['hello', 'world', 'foo', 'bar'], flattened=['hello', 'world', 'foo', 'bar']
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_tokenizer.py::test_tokenize_special_characters_and_symbols 
+[TEST] test_tokenize_special_characters_and_symbols
+  Input:    'Crawler-v1.0: extracts #python & $data (at 100% accuracy)!'
+  Expected: ['crawler', 'v1', '0', 'extracts', 'python', 'data', '100', 'accuracy']
+  Actual:   ['crawler', 'v1', '0', 'extracts', 'python', 'data', '100', 'accuracy']
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_tokenizer.py::test_tokenize_all_stopwords 
+[TEST] test_tokenize_all_stopwords
+  Input:    'this is an and but or if then so what why when' (all stop-words)
+  Expected: []
+  Actual:   []
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_tokenizer.py::test_tokenize_pure_numbers 
+[TEST] test_tokenize_pure_numbers
+  Input:    '1984 2001 2026 42'
+  Expected: ['1984', '2001', '2026', '42']
+  Actual:   ['1984', '2001', '2026', '42']
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_tokenizer.py::test_tokenize_segments_all_stopwords_fragment_omitted 
+[TEST] test_tokenize_segments_all_stopwords_fragment_omitted
+  Input:    'Search Engine<BREAK>is a and the<BREAK>Retrieval System'
+  Expected: [['search', 'engine'], ['retrieval', 'system']] (middle segment omitted)
+  Actual:   [['search', 'engine'], ['retrieval', 'system']]
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_tokenizer.py::test_tokenize_whitespace_newlines_tabs 
+[TEST] test_tokenize_whitespace_newlines_tabs
+  Input:    raw string with tabs and newlines
+  Expected: ['hello', 'world']
+  Actual:   ['hello', 'world']
+  Status:   PASS [OK]
+PASSED
+tests/wl1/test_tokenizer.py::test_tokenize_hyphenated_and_compound_words 
+[TEST] test_tokenize_hyphenated_and_compound_words
+  Input:    'state-of-the-art multi-threading'
+  Expected: ['state', 'art', 'multi', 'threading']
+  Actual:   ['state', 'art', 'multi', 'threading']
+  Status:   PASS [OK]
+PASSED
+
+============================= 62 passed in 0.45s ==============================
+
+================================================================================
+ TEST EXECUTION SUMMARY
+ Status      : SUCCESS (ALL PASSED)
+ Duration    : 0.89 seconds
+ Output Files:
+   - D:\Coding\Projects\Mini-Search-Engine\tests\wl1\test_output.txt
+   - D:\Coding\Projects\Mini-Search-Engine\logs\wl1_test_report.txt
+================================================================================

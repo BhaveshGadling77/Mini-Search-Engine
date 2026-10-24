@@ -18,6 +18,12 @@ import dataclasses
 from datetime import datetime, timezone
 from typing import Any
 
+# The section-break sentinel used internally by the parser/tokenizer.
+# It must NOT leak into the persisted JSON text because downstream C++
+# readers (CorpusReader) do not decode \uXXXX escapes, causing raw
+# "u0000" to appear in snippets.
+_SECTION_BREAK = "\x00"
+
 
 @dataclasses.dataclass(frozen=True)
 class Document:
@@ -33,17 +39,24 @@ class Document:
 
     doc_id: str
     url: str
+    title: str
     text: str
     tokens: tuple[str, ...]
     token_segments: tuple[tuple[str, ...], ...]
     meta: dict[str, Any]
 
     def to_dict(self) -> dict[str, Any]:
-        """Return the JSON-serializable record form (schema frozen for W2/W3)."""
+        """Return the JSON-serializable record form (schema frozen for W2/W3).
+
+        The ``text`` field has internal section-break sentinels (``\\x00``)
+        replaced with spaces so that downstream consumers (including C++
+        CorpusReader) receive clean, displayable snippet text.
+        """
         return {
             "doc_id": self.doc_id,
             "url": self.url,
-            "text": self.text,
+            "title": self.title,
+            "text": self.text.replace(_SECTION_BREAK, " "),
             "tokens": list(self.tokens),
             "token_segments": [list(seg) for seg in self.token_segments],
             "meta": self.meta,

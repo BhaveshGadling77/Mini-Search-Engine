@@ -95,8 +95,22 @@ def _parse_dom(html: str | None):
         return None
 
 
-def parse_page(html: str | None, base_url: str) -> tuple[str, list[str]]:
-    """Parse HTML once and return both clean text and outbound links.
+
+def _extract_title(doc) -> str:
+    """Extract the page ``<title>`` text, or return ``""`` if absent."""
+    title_nodes = doc.xpath("//head/title")
+    if not title_nodes:
+        # Fallback: some pages have <title> outside <head> or lxml
+        # may have re-parented it.
+        title_nodes = doc.xpath("//title")
+    if title_nodes:
+        raw = title_nodes[0].text_content()
+        return _WS_RE.sub(" ", raw).strip()
+    return ""
+
+
+def parse_page(html: str | None, base_url: str) -> tuple[str, str, list[str]]:
+    """Parse HTML once and return the title, clean text, and outbound links.
 
     This avoids parsing the same HTML twice when both text and links are
     needed (which is the common case in the crawl loop).
@@ -106,12 +120,15 @@ def parse_page(html: str | None, base_url: str) -> tuple[str, list[str]]:
 
     Returns
     -------
-    tuple[str, list[str]]
-        (visible_text_with_breaks, list_of_absolute_urls)
+    tuple[str, str, list[str]]
+        (page_title, visible_text_with_breaks, list_of_absolute_urls)
     """
     doc = _parse_dom(html)
     if doc is None:
-        return "", []
+        return "", "", []
+
+    # --- Extract title before stripping <head> ----------------------------
+    title = _extract_title(doc)
 
     # --- Extract links before stripping nodes (anchors may be in <head>) ---
     links: list[str] = []
@@ -127,7 +144,7 @@ def parse_page(html: str | None, base_url: str) -> tuple[str, list[str]]:
             parent.remove(node)
     text = _collapse(_extract_text_with_breaks(doc))
 
-    return text, links
+    return title, text, links
 
 
 def parse_html(html: str | None) -> str:
