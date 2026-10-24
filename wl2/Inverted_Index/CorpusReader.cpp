@@ -125,6 +125,95 @@ static void skipWhitespace(const string &text, size_t &i, size_t end) {
         ++i;
 }
 
+static void appendUtf8CodePoint(string &value, unsigned int codepoint) {
+    if (codepoint == 0) {
+        value.push_back(' ');
+        return;
+    }
+    if (codepoint < 0x20 && codepoint != '\n' && codepoint != '\r' && codepoint != '\t') {
+        value.push_back(' ');
+        return;
+    }
+    if (codepoint <= 0x7F) {
+        value.push_back(static_cast<char>(codepoint));
+        return;
+    }
+    if (codepoint <= 0x7FF) {
+        value.push_back(static_cast<char>(0xC0 | ((codepoint >> 6) & 0x1F)));
+        value.push_back(static_cast<char>(0x80 | (codepoint & 0x3F)));
+        return;
+    }
+    if (codepoint <= 0xFFFF) {
+        value.push_back(static_cast<char>(0xE0 | ((codepoint >> 12) & 0x0F)));
+        value.push_back(static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F)));
+        value.push_back(static_cast<char>(0x80 | (codepoint & 0x3F)));
+        return;
+    }
+    if (codepoint <= 0x10FFFF) {
+        value.push_back(static_cast<char>(0xF0 | ((codepoint >> 18) & 0x07)));
+        value.push_back(static_cast<char>(0x80 | ((codepoint >> 12) & 0x3F)));
+        value.push_back(static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F)));
+        value.push_back(static_cast<char>(0x80 | (codepoint & 0x3F)));
+    }
+}
+
+static void appendUnicodeEscape(string &value, const string &text, size_t &i, size_t end) {
+    if (i + 4 > end) {
+        if (i < end) value.push_back(text[i++]);
+        return;
+    }
+
+    unsigned int codepoint = 0;
+    for (int shift = 12; shift >= 0; shift -= 4) {
+        const char ch = text[i++];
+        int digit = 0;
+        if (ch >= '0' && ch <= '9') {
+            digit = ch - '0';
+        } else if (ch >= 'a' && ch <= 'f') {
+            digit = ch - 'a' + 10;
+        } else if (ch >= 'A' && ch <= 'F') {
+            digit = ch - 'A' + 10;
+        } else {
+            --i;
+            value.push_back(ch);
+            return;
+        }
+        codepoint |= static_cast<unsigned int>(digit) << shift;
+    }
+
+    if (codepoint >= 0xD800 && codepoint <= 0xDBFF && i + 6 <= end &&
+        text[i] == '\\' && text[i + 1] == 'u') {
+        size_t surrogateStart = i + 2;
+        unsigned int lowSurrogate = 0;
+        bool validLowSurrogate = true;
+        for (int shift = 12; shift >= 0; shift -= 4) {
+            if (surrogateStart + 4 > end) {
+                validLowSurrogate = false;
+                break;
+            }
+            const char ch = text[surrogateStart++];
+            int digit = 0;
+            if (ch >= '0' && ch <= '9') {
+                digit = ch - '0';
+            } else if (ch >= 'a' && ch <= 'f') {
+                digit = ch - 'a' + 10;
+            } else if (ch >= 'A' && ch <= 'F') {
+                digit = ch - 'A' + 10;
+            } else {
+                validLowSurrogate = false;
+                break;
+            }
+            lowSurrogate |= static_cast<unsigned int>(digit) << shift;
+        }
+        if (validLowSurrogate && lowSurrogate >= 0xDC00 && lowSurrogate <= 0xDFFF) {
+            codepoint = 0x10000 + (((codepoint - 0xD800) << 10) | (lowSurrogate - 0xDC00));
+            i += 6;
+        }
+    }
+
+    appendUtf8CodePoint(value, codepoint);
+}
+
 static string parseJsonString(const string &text, size_t &i, size_t end) {
     string value;
     if (i >= end || text[i] != '"')
@@ -158,6 +247,9 @@ static string parseJsonString(const string &text, size_t &i, size_t end) {
                 break;
             case 't':
                 value += '\t';
+                break;
+            case 'u':
+                appendUnicodeEscape(value, text, i, end);
                 break;
             default:
                 value += escaped;

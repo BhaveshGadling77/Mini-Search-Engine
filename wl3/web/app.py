@@ -51,7 +51,8 @@ _PAGE = """<!doctype html>
  <button>Search</button>
 </form>
 {% if error %}<p style="color:#b00">{{ error }}</p>{% endif %}
-{% if searched and not results and not error %}<p>No results.</p>{% endif %}
+{% if notice %}<p class="msg" id="notice">{{ notice }}</p>{% endif %}
+{% if searched and not results and not error and not notice %}<p>No results.</p>{% endif %}
 {% for r in results %}
  <div class="r">
   <a href="{{ r.url }}">{{ r.rank }}. {{ r.title }}</a>
@@ -111,6 +112,7 @@ def create_app(engine: QueryEngine | None = None, **engine_kwargs) -> Flask:
         except Worklet2Error as exc:
             return jsonify(error=str(exc)), 502
         body = jsonify(query=q, mode=mode, k=k, mmr=use_mmr,
+                       notice=getattr(results, "notice", ""),
                        results=[r.to_dict() for r in results])
         return finish(body, sid, is_new)
 
@@ -141,14 +143,16 @@ def create_app(engine: QueryEngine | None = None, **engine_kwargs) -> Flask:
     def index():
         sid, is_new = session_id()
         ctx = {"q": "", "mode": "bm25", "k": 10, "mmr": False,
-               "results": [], "searched": False, "error": None}
+               "results": [], "searched": False, "error": None, "notice": ""}
         if request.args.get("q", "").strip():
             try:
                 q, mode, k, use_mmr = parse_params()
                 ctx.update(q=q, mode=mode, k=k, mmr=use_mmr, searched=True)
                 terms = tokenize_query(q)
                 rows = []
-                for r in get_engine().search(q, sid, mode, k, use_mmr):
+                found = get_engine().search(q, sid, mode, k, use_mmr)
+                ctx["notice"] = getattr(found, "notice", "")
+                for r in found:
                     row = r.to_dict()
                     row["snippet_html"] = highlight(
                         html.escape(r.snippet), terms, "<mark>", "</mark>"

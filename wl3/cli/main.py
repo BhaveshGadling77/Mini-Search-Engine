@@ -36,8 +36,9 @@ HELP = __doc__.split("REPL commands:")[1].strip("\n")
 
 def format_results(results: list[RankedResult], query: str, color: bool = True) -> str:
     """Render ranked results as text (highlighting query terms)."""
+    notice = getattr(results, "notice", "")
     if not results:
-        return "No results."
+        return notice or "No results."
     terms = tokenize_query(query)
     on, off = ("\033[1;33m", "\033[0m") if color else ("", "")
     lines = []
@@ -49,7 +50,8 @@ def format_results(results: list[RankedResult], query: str, color: bool = True) 
         if snippet:
             lines.append(f"   {snippet}")
         lines.append("")
-    return "\n".join(lines).rstrip()
+    body = "\n".join(lines).rstrip()
+    return f"{notice}\n\n{body}" if notice else body
 
 
 def run_repl(engine: QueryEngine, mode: str, k: int, use_mmr: bool, color: bool) -> None:

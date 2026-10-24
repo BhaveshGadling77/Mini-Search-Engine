@@ -22,6 +22,38 @@ The system is designed to support different types of searches, including:
 * Wildcard searches
 * Ranked searches
 
+---
+
+## Run the Web Application
+
+The Flask web application is provided by Worklet 3. To run it against the
+project's C++ Worklet 2 search backend and the crawler corpus, run these
+commands from the repository root:
+
+```bash
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+python -m pip install pybind11
+make pybind
+WL3_W2_BACKEND=wl3.integration.wl2_backend:create_backend \
+WL3_CORPUS=data/crawler.json \
+python -m wl3.web.app
+```
+
+Open [http://127.0.0.1:5000](http://127.0.0.1:5000) in your browser. Press
+`Ctrl+C` in the terminal to stop the server. The `make pybind` step builds the
+Python binding used to call Worklet 2's C++ implementation.
+
+To run Worklet 3 with its generated demo corpus instead of the crawler corpus
+and C++ backend, activate the virtual environment and run:
+
+```bash
+env -u WL3_CORPUS -u WL3_W2_BACKEND python -m wl3.web.app
+```
+
+The crawler data file is read by the C++ Worklet 2 backend. It is not in the
+JSON format expected by Worklet 3's optional in-memory Python corpus loader.
+
 It also provides an interactive command-line interface and allows the performance and quality of the search engine to be evaluated using metrics such as precision, recall, and query latency.
 
 ---

@@ -75,6 +75,7 @@ class InMemoryWorklet2:
         match: set[int] = set()
         pending_op = "or"
         terms_seen: list[str] = []
+        saw_stopword = False
         first = True
 
         for raw in re.findall(r"[A-Za-z0-9*]+", query_string):
@@ -84,6 +85,7 @@ class InMemoryWorklet2:
                 continue
             term = word.rstrip("*")
             if not term or term in _STOP_WORDS:
+                saw_stopword = saw_stopword or bool(term)
                 continue
             terms_seen.append(term)
             if word.endswith("*"):
@@ -102,6 +104,12 @@ class InMemoryWorklet2:
             else:
                 match |= docs
             pending_op = "or"
+
+        if saw_stopword and not terms_seen:
+            # Same contract as the real Worklet 2: first 10 docs + marker -1.
+            first_ten = {doc_id: {} for doc_id in sorted(self._docs)[:10]}
+            first_ten[-1] = {}
+            return first_ten, {}
 
         candidates = {}
         for doc_id in match:
