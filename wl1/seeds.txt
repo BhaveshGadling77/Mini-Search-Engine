@@ -1,0 +1,148 @@
+# Mini Search Engine - 100 Seed URLs
+# Format: One URL per line. Empty lines and lines starting with '#' are ignored.
+# Strategy: High-crawlability static HTML, diverse TLDs (.org, .edu, .gov, .com, .dev, .io), 
+# depth-varied subpages, high-density link hubs for frontier deduplication, 
+# and explicit robots.txt disallowed paths for politeness verification.
+
+# ==============================================================================
+# Category 1: Tech Docs & Software Manuals (.org, .dev, .io, .com) [Mixed Depths]
+# ==============================================================================
+https://docs.python.org/3/                                 # Depth 0: Hub
+https://docs.python.org/3/tutorial/index.html              # Depth 1: Subpage
+https://doc.rust-lang.org/book/                            # Depth 0: Book Hub
+https://doc.rust-lang.org/book/ch01-01-installation.html   # Depth 2: Deep Leaf Page
+https://go.dev/doc/                                        # Depth 0: Hub
+https://www.sqlite.org/docs.html                           # Depth 0: Link Dense Hub
+https://www.postgresql.org/docs/current/static/index.html  # Depth 1: Subpage
+https://www.lua.org/manual/5.4/                            # Depth 1: Single Page Manual
+https://perldoc.perl.org/                                  # Depth 0: Hub
+https://nim-lang.org/docs/manual.html                      # Depth 1: Deep Manual
+
+# ==============================================================================
+# Category 2: Educational Institutions & Textbooks (.edu, .org, .ac.in)
+# ==============================================================================
+https://ocw.mit.edu/                                       # .edu - Root Portal
+https://onlinebooks.library.upenn.edu/                     # .edu - High Link Density Directory
+https://ocw.jhu.edu/                                       # .edu - Course Index
+https://open.umn.edu/opentextbooks                         # .edu - Textbook Directory
+https://openstax.org/subjects                              # .org - Textbook Subject Hub
+https://en.wikibooks.org/wiki/Main_Page                    # .org - Wikibooks Portal
+https://learn.saylor.org/                                  # .org - Course Catalog
+https://libretexts.org/                                    # .org - OER Library
+https://nptel.ac.in/                                       # .ac.in - NPTEL Open Content
+https://open.bccampus.ca/browse-our-collection/            # .ca - Open Textbooks
+
+# ==============================================================================
+# Category 3: Government & Public Data Portals (.gov, .europa.eu, .int)
+# ==============================================================================
+https://catalog.data.gov/dataset                           # .gov - High Density Dataset Catalog
+https://www.census.gov/topics.html                         # .gov - Topic Index
+https://www.data.gov.uk/                                   # .gov.uk - Open Data Portal
+https://data.europa.eu/en                                  # .europa.eu - Open Data Hub
+https://databank.worldbank.org/                            # .org - World Bank Data
+https://data.un.org/                                       # .org - UN Data Hub
+https://earthdata.nasa.gov/                                # .gov - NASA Science Data
+https://www.usgs.gov/products/data-and-tools/real-time-data # .gov - USGS Realtime Data
+https://www.who.int/data                                   # .int - WHO Global Health Data
+https://www.loc.gov/collections/                           # .gov - Library of Congress Collections
+
+# ==============================================================================
+# Category 4: Standards, Protocols & Specs (.org, .w3.org, .ietf.org)
+# ==============================================================================
+https://www.w3.org/TR/html52/                              # Web Standard Spec
+https://www.w3.org/TR/CSS22/                               # CSS Spec
+https://www.ietf.org/rfc/rfc2616.txt                       # RFC 2616 (HTTP/1.1 Plain Text)
+https://www.ietf.org/rfc/rfc7540.txt                       # RFC 7540 (HTTP/2 Plain Text)
+https://www.ietf.org/rfc/rfc8446.txt                       # RFC 8446 (TLS 1.3 Plain Text)
+https://www.ietf.org/rfc/rfc1035.txt                       # RFC 1035 (DNS Spec)
+https://www.ietf.org/rfc/rfc8259.txt                       # RFC 8259 (JSON Spec)
+https://www.w3.org/TR/SVG11/                               # SVG 1.1 Specification
+https://webassembly.github.io/spec/core/                   # WebAssembly Core Spec
+https://www.w3.org/TR/wai-aria/                            # WAI-ARIA Accessibility Spec
+
+# ==============================================================================
+# Category 5: Science & Research Repositories (.org, .edu, .gov)
+# ==============================================================================
+https://arxiv.org/list/cs/recent                           # High-turnover CS Preprint List
+https://arxiv.org/list/physics/recent                      # Physics Preprint List
+https://arxiv.org/list/math/recent                         # Math Preprint List
+https://arxiv.org/list/q-bio/recent                        # Quantitative Biology List
+https://philarchive.org/                                   # Philosophy Open Archive
+https://opencontext.org/                                   # Archaeological Data Repository
+https://journals.plos.org/plosone/                         # PLOS ONE Open Access Hub
+https://www.ncbi.nlm.nih.gov/pmc/                          # PubMed Central Open Access
+https://ui.adsabs.harvard.edu/                             # NASA Astrophysics Data System (.edu)
+https://plato.stanford.edu/contents.html                   # Stanford Encyclopedia of Phil (.edu)
+
+# ==============================================================================
+# Category 6: Classical Literature & Books (.org, .edu, .com) [Deep Subpages]
+# ==============================================================================
+https://www.gutenberg.org/browse/scores/top                # High-Link Density Rank Hub
+https://www.gutenberg.org/files/11/11-h/11-h.htm           # Deep Document (Alice in Wonderland)
+https://standardebooks.org/ebooks                          # Ebook Catalog
+https://www.sacred-texts.com/index.htm                     # Classical Text Directory
+https://www.perseus.tufts.edu/hopper/                      # .edu - Perseus Digital Library
+https://en.wikisource.org/wiki/Main_Page                   # Wikisource Main Portal
+https://librivox.org/                                      # Audio Book Public Catalog
+https://archive.org/details/texts                          # Internet Archive Texts Hub
+https://www.bartleby.com/lit-hub/                          # Bartleby Reference Hub
+https://www.gutenberg.org/ebooks/                          # Gutenberg Search Portal
+
+# ==============================================================================
+# Category 7: High-Link Density Hubs (Frontier & Deduplication Testing)
+# ==============================================================================
+https://simple.wikipedia.org/wiki/Wikipedia:Vital_articles # Hundreds of internal links
+https://simple.wikipedia.org/wiki/Main_Page                # High cross-linking main page
+https://tldp.org/HOWTO/HOWTO-INDEX/                        # Linux Documentation Project Index
+https://wiki.archlinux.org/title/Main_page                 # ArchWiki Main Portal
+https://curlie.org/                                        # Web Directory (formerly DMOZ)
+https://everything2.com/                                   # Interlinked Hypertext Nodes
+https://sourcebooks.fordham.edu/                           # .edu - Medieval Sourcebook Index
+https://www.worldhistory.org/                              # World History Encyclopedia
+https://www.ushistory.org/                                 # US History Educational Hub
+https://www.gnu.org/software/coreutils/manual/             # GNU Manual Directory
+
+# ==============================================================================
+# Category 8: Technical Blogs & Engineering Essays (.com, .org, .ca)
+# ==============================================================================
+https://news.ycombinator.com/newsguidelines.html           # Text-heavy Static Page
+https://paulgraham.com/articles.html                       # High-density Essay Index
+https://martinfowler.com/architecture/                     # Architecture Article Index
+https://danluu.com/                                        # Dan Luu Engineering Posts Index
+https://jvns.ca/categories/                                # Julia Evans Tech Zines & Posts
+https://www.joelonsoftware.com/archives/                   # Joel on Software Archives
+https://queue.acm.org/                                     # ACM Queue Engineering Portal
+https://spectrum.ieee.org/                                 # IEEE Spectrum Tech Articles
+https://lwn.net/                                           # Linux Weekly News Archives
+https://hacks.mozilla.org/                                 # Mozilla Hacks Developer Blog
+
+# ==============================================================================
+# Category 9: Reference & Text-Only Outlets (.org, .com, .gov)
+# ==============================================================================
+https://en.wikinews.org/wiki/Main_Page                     # Wikinews Portal
+https://text.npr.org/                                      # Pure Minimalist Text-Only News Site
+https://en.wikiquote.org/wiki/Main_Page                    # Wikiquote Portal
+https://en.wiktionary.org/wiki/Wiktionary:Main_Page        # Wiktionary Main Page
+https://help.archive.org/help/                             # Internet Archive Help Center
+https://www.eff.org/issues                                 # Electronic Frontier Foundation
+https://fsf.org/licensing/                                 # Free Software Foundation Licensing
+https://www.debian.org/doc/                                # Debian Documentation Index
+https://git-scm.com/docs                                   # Git Command Documentation
+https://curl.se/docs/                                      # Curl Tool Manuals & Protocols
+
+# ==============================================================================
+# Category 10: Robots.txt Disallow Test Cases (Fetcher Verification)
+# ==============================================================================
+# These URLs are intentionally included to verify that Fetcher._robots_allowed()
+# correctly fetches domain robots.txt, respects Disallow rules, logs warnings,
+# and safely skips disallowed pages without throwing exceptions.
+https://en.wikipedia.org/w/index.php?title=Special:Search   # Wikipedia Search (Disallowed)
+https://docs.python.org/3/search.html                      # Python Docs Search (Disallowed)
+https://arxiv.org/find/                                    # arXiv Search Engine (Disallowed)
+https://www.gnu.org/cgi-bin/                               # GNU CGI Scripts (Disallowed)
+https://www.gutenberg.org/ebooks/search/                   # Gutenberg Search CGI (Disallowed)
+https://catalog.data.gov/dataset?q=test                    # Data.gov Query Endpoint
+https://wiki.archlinux.org/index.php?search=test           # ArchWiki Search Handler
+https://ocw.mit.edu/search/                                # MIT OCW Search Handler
+https://www.debian.org/search                              # Debian Search Portal
+https://www.loc.gov/search/                                # Library of Congress Search
