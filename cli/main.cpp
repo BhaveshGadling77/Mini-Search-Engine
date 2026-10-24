@@ -19,9 +19,13 @@ static std::string sanitize_for_terminal(const std::string &s) {
     std::string out;
     out.reserve(s.size());
     for (unsigned char ch : s) {
-        if (ch == '\n' || ch == '\r' || ch == '\t')
+        if (ch == '\0')
+            out.push_back(' ');
+        else if (ch == '\n' || ch == '\r' || ch == '\t')
             out.push_back(static_cast<char>(ch));
         else if (ch >= 0x20 && ch < 0x7F)
+            out.push_back(static_cast<char>(ch));
+        else if ((ch & 0x80) != 0)
             out.push_back(static_cast<char>(ch));
         else
             out.push_back('?');
