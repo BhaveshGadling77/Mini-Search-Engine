@@ -10,7 +10,7 @@ PARSER := wl2/Pos_Inverted_Index
 TEXT := wl2/lib/src/libfreeling/text_processing.cc
 TRIE := wl2/trie
 
-.PHONY: all cli test test-wl2 run clean pybind benchmark-union-skips demo-union-skips
+.PHONY: all cli test test-wl2 test-boolean run clean pybind benchmark-union-skips demo-union-skips
 
 all: cli
 
@@ -32,6 +32,10 @@ $(BUILD)/bridge_test: $(ROOT)/tests/wl2/Worklet3BridgeTest.cpp $(W2)/CorpusReade
 
 # Posting operations tests
 $(BUILD)/postings_test: $(ROOT)/tests/wl2/QueryPostingsOperationsTest.cpp $(OPS)/PostingsOperations.cpp $(W2)/Posting.cpp | $(BUILD)
+	$(CXX) $(CXXFLAGS) -I$(W2) -I$(OPS) $^ -o $@
+
+# Posting operations extended tests (14 test cases)
+$(BUILD)/postings_ops_test: $(ROOT)/tests/wl2/PostingsOperationsTest.cpp $(OPS)/PostingsOperations.cpp $(W2)/Posting.cpp | $(BUILD)
 	$(CXX) $(CXXFLAGS) -I$(W2) -I$(OPS) $^ -o $@
 
 # Posting operations benchmark
@@ -56,9 +60,22 @@ demo-union-skips: $(BUILD)/union_skip_demo
 $(BUILD)/trie_test: $(TRIE)/trietests.cpp $(TRIE)/trie.cpp | $(BUILD)
 	$(CXX) $(CXXFLAGS) -I$(TRIE) $^ -o $@
 
-test-wl2: $(BUILD)/bridge_test $(BUILD)/postings_test $(BUILD)/trie_test
+test-boolean: $(BUILD)/postings_test $(BUILD)/postings_ops_test $(BUILD)/bridge_test
+	@echo "Boolean Operations Unit Tests (randomized)"
+	./$(BUILD)/postings_test
+	@echo ""
+	@echo "Boolean Operations Extended Tests (14 cases)"
+	./$(BUILD)/postings_ops_test
+	@echo ""
+	@echo "Boolean Query Integration Tests "
+	./$(BUILD)/bridge_test
+	@echo ""
+	@echo "All Boolean tests passed"
+
+test-wl2: $(BUILD)/bridge_test $(BUILD)/postings_test $(BUILD)/postings_ops_test $(BUILD)/trie_test
 	./$(BUILD)/bridge_test
 	./$(BUILD)/postings_test
+	./$(BUILD)/postings_ops_test
 	./$(BUILD)/trie_test
 
 test: test-wl2

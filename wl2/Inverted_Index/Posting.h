@@ -25,6 +25,14 @@ public:
     // ensure its docId is greater than the current last posting's docId.
     void appendSortedPosting(const Posting &posting);
 
+    void reserve(size_t capacity);
+
+    void appendSortedRange(
+        const vector<Posting>& source,
+        size_t start,
+        size_t end
+    );
+
     const vector<Posting>& get_all() const;
 
     void print() const;

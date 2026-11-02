@@ -32,9 +32,10 @@ PostingList PostingsOperations::intersect(const PostingList &a, const PostingLis
 }
 
 PostingList PostingsOperations::union_(const PostingList &a, const PostingList &b) {
-    PostingList result;
     const std::vector<Posting> &left = a.get_all();
     const std::vector<Posting> &right = b.get_all();
+    PostingList result;
+    result.reserve(left.size() + right.size());
     size_t i = 0, j = 0;
 
     while (i < left.size() && j < right.size()) {
@@ -66,10 +67,19 @@ namespace {
  * that belongs next to `target` in the merge, and never drops one either
  * (the caller copies [i, p) into the result).
  */
- size_t follow_fixed_skips(const std::vector<Posting> &list, size_t i, int target, size_t stride) {
+size_t follow_fixed_skips(
+    const std::vector<Posting>& list,
+    size_t i,
+    int target,
+    size_t stride
+) {
     if (stride <= 1) return i;
-    while (i % stride == 0 && i + stride < list.size() && list[i + stride].docId < target)
+
+    while (i + stride < list.size() &&
+           list[i + stride].docId < target) {
         i += stride;
+    }
+
     return i;
 }
 
@@ -97,9 +107,10 @@ enum class SkipKind { Fixed, Exponential };
 
 PostingList union_skip_merge(const PostingList &a, const PostingList &b, SkipKind kind,
                              size_t left_stride, size_t right_stride) {
-    PostingList result;
     const std::vector<Posting> &left = a.get_all();
     const std::vector<Posting> &right = b.get_all();
+    PostingList result;
+    result.reserve(left.size() + right.size());
     size_t i = 0, j = 0;
 
     auto skip = [&](const std::vector<Posting> &list, size_t pos, int target, size_t stride) {
@@ -120,15 +131,17 @@ PostingList union_skip_merge(const PostingList &a, const PostingList &b, SkipKin
             // whole blocks that are still < right[j] and bulk-copy them.
             size_t next = skip(left, i, r, left_stride);
             if (next == i) next = i + 1;
-            for (; i < next; ++i) append_posting(result, left[i]);
+            result.appendSortedRange(left, i, next);
+            i = next;
         } else {
             size_t next = skip(right, j, l, right_stride);
             if (next == j) next = j + 1;
-            for (; j < next; ++j) append_posting(result, right[j]);
+            result.appendSortedRange(right, j, next);
+            j = next;
         }
     }
-    while (i < left.size()) append_posting(result, left[i++]);
-    while (j < right.size()) append_posting(result, right[j++]);
+    if (i < left.size()) result.appendSortedRange(left, i, left.size());
+    if (j < right.size()) result.appendSortedRange(right, j, right.size());
     return result;
 }
 

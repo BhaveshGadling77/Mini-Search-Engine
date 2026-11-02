@@ -43,6 +43,24 @@ void PostingList::appendSortedPosting(const Posting &posting) {
     postings.push_back(posting);
 }
 
+void PostingList::reserve(size_t capacity) {
+    postings.reserve(capacity);
+}
+
+void PostingList::appendSortedRange(
+    const vector<Posting>& source,
+    size_t start,
+    size_t end
+) {
+    if (start >= end) return;
+
+    postings.insert(
+        postings.end(),
+        source.begin() + start,
+        source.begin() + end
+    );
+}
+
 const vector<Posting>& PostingList::get_all() const {
     return postings;
 }
