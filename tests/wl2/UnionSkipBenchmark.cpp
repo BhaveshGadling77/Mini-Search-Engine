@@ -56,6 +56,21 @@ void benchmark_case(const char *name, const PostingList &a, const PostingList &b
               << "  checksum: " << checksum << '\n';
 }
 
+std::vector<int> every_nth(int count, int step) {
+    std::vector<int> ids;
+    for (int i = 0; i < count; ++i) ids.push_back(i * step);
+    return ids;
+}
+
+// Clustered: runs of `run` consecutive IDs, then a gap of `gap` (long runs with no
+// counterpart in the other list are exactly what skip pointers copy in bulk).
+std::vector<int> clustered(int clusters, int run, int gap, int offset) {
+    std::vector<int> ids;
+    for (int c = 0; c < clusters; ++c)
+        for (int k = 0; k < run; ++k) ids.push_back(offset + c * (run + gap) + k);
+    return ids;
+}
+
 } // namespace
 
 int main() {
@@ -69,5 +84,12 @@ int main() {
 
     benchmark_case("Random sparse lists", make_list(left_ids), make_list(right_ids));
     benchmark_case("Same list", make_list(left_ids), make_list(left_ids));
+    // Cases where skip pointers are expected to help: long runs in one list that the
+    // other list never touches, or a tiny list against a huge one.
+    benchmark_case("Tiny list vs huge list (10 vs 200000)",
+                   make_list(every_nth(200000, 1)), make_list(every_nth(10, 20000)));
+    benchmark_case("Clustered, non-overlapping runs (runs of 2000)",
+                   make_list(clustered(50, 2000, 2000, 0)),
+                   make_list(clustered(50, 2000, 2000, 2000)));
     benchmark_case("Empty right list", make_list(left_ids), PostingList{});
 }

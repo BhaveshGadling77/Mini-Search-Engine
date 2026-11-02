@@ -10,7 +10,7 @@ PARSER := wl2/Pos_Inverted_Index
 TEXT := wl2/lib/src/libfreeling/text_processing.cc
 TRIE := wl2/trie
 
-.PHONY: all cli test test-wl2 run clean pybind benchmark-union-skips
+.PHONY: all cli test test-wl2 run clean pybind benchmark-union-skips demo-union-skips
 
 all: cli
 
@@ -44,6 +44,13 @@ $(BUILD)/union_skip_benchmark: $(ROOT)/tests/wl2/UnionSkipBenchmark.cpp $(OPS)/P
 
 benchmark-union-skips: $(BUILD)/union_skip_benchmark
 	./$(BUILD)/union_skip_benchmark
+
+# Show why skips help: comparison counts + timing on plain docId vectors.
+$(BUILD)/union_skip_demo: $(ROOT)/tests/wl2/UnionSkipComparisonDemo.cpp | $(BUILD)
+	$(CXX) $(CXXFLAGS) $^ -o $@
+
+demo-union-skips: $(BUILD)/union_skip_demo
+	./$(BUILD)/union_skip_demo
 
 # Trie tests
 $(BUILD)/trie_test: $(TRIE)/trietests.cpp $(TRIE)/trie.cpp | $(BUILD)

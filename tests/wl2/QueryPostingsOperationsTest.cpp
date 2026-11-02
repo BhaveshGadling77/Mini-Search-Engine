@@ -173,6 +173,75 @@ void test_many_sorted_inputs() {
     }
 }
 
+bool same_postings(const PostingList &x, const PostingList &y) {
+    const auto &p = x.get_all();
+    const auto &q = y.get_all();
+    if (p.size() != q.size()) return false;
+    for (size_t k = 0; k < p.size(); ++k)
+        if (p[k].docId != q[k].docId || p[k].frequency != q[k].frequency ||
+            p[k].positions != q[k].positions)
+            return false;
+    return true;
+}
+
+// Every skip-pointer union must equal union_() posting-for-posting (IDs, frequencies,
+// positions), across list sizes/densities that exercise long skips, short skips,
+// no overlap, full overlap, and very unequal lengths.
+void test_skip_union_equals_normal_union() {
+    std::mt19937 gen(4242);
+    const int universes[] = {1, 5, 50, 400, 3000};
+    const double densities[] = {0.02, 0.1, 0.5, 0.95};
+    int trial = 0;
+    for (int universe : universes)
+        for (double da : densities)
+            for (double db : densities)
+                for (int rep = 0; rep < 6; ++rep, ++trial) {
+                    std::bernoulli_distribution ia(da), ib(db);
+                    PostingList a, b;
+                    for (int id = 0; id < universe; ++id) {
+                        if (ia(gen)) { a.addOccurrence(id, id % 7); a.addOccurrence(id, 9); }
+                        if (ib(gen)) b.addOccurrence(id, id % 3);
+                    }
+                    const PostingList expected = PostingsOperations::union_(a, b);
+                    const std::string label = "skip-equivalence trial " + std::to_string(trial);
+                    auto check = [&](const char *name, const PostingList &got) {
+                        if (!same_postings(got, expected)) {
+                            ++failures;
+                            std::cerr << "FAIL: " << label << " " << name << " differs from union_\n";
+                        }
+                    };
+                    check("union_with_skips", PostingsOperations::union_with_skips(a, b));
+                    for (int k : {-3, 0, 1, 2, 3, 7, 64})
+                        check("fixed", PostingsOperations::union_with_fixed_skips(a, b, k));
+                    check("exponential", PostingsOperations::union_with_exponential_skips(a, b));
+                    check("legacy intersect_with_skips", PostingsOperations::intersect_with_skips(a, b));
+                    // Output must be strictly increasing (sorted, no duplicates).
+                    const auto ids = PostingsOperations::extract_doc_ids(
+                        PostingsOperations::union_with_skips(a, b));
+                    if (!std::is_sorted(ids.begin(), ids.end()) ||
+                        std::adjacent_find(ids.begin(), ids.end()) != ids.end()) {
+                        ++failures;
+                        std::cerr << "FAIL: " << label << " output not strictly sorted\n";
+                    }
+                }
+
+    // Skewed: one huge list, one tiny list, with the tiny one's ids at the extremes.
+    std::vector<int> big;
+    for (int id = 0; id < 10000; id += 2) big.push_back(id);
+    for (const std::vector<int> &small : {std::vector<int>{}, {0}, {9998}, {1, 9999, 20000}, {-5, 4, 5}}) {
+        const PostingList A = make_list(big), B = make_list(small);
+        for (int order = 0; order < 2; ++order) {
+            const PostingList &x = order ? B : A, &y = order ? A : B;
+            if (!same_postings(PostingsOperations::union_with_skips(x, y), PostingsOperations::union_(x, y)) ||
+                !same_postings(PostingsOperations::union_with_exponential_skips(x, y),
+                               PostingsOperations::union_(x, y))) {
+                ++failures;
+                std::cerr << "FAIL: skewed skip union differs from union_\n";
+            }
+        }
+    }
+}
+
 } // namespace
 
 int main() {
@@ -180,6 +249,7 @@ int main() {
     test_empty_and_boundary_lists();
     test_posting_data_is_preserved();
     test_many_sorted_inputs();
+    test_skip_union_equals_normal_union();
 
     if (failures != 0) {
         std::cerr << failures << " test(s) failed.\n";

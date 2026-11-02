@@ -9,7 +9,12 @@ class PostingsOperations {
     // Boolean operations consume and return the inverted index's PostingList type.
     static PostingList intersect(const PostingList &a, const PostingList &b);
     static PostingList union_(const PostingList &a, const PostingList &b);
+    // Union using skip pointers (sqrt(n)-spaced). Always returns exactly what union_() returns.
     static PostingList union_with_skips(const PostingList &a, const PostingList &b);
+    // Same contract as union_(), with a caller-chosen fixed skip interval (<= 1 means no skips).
+    static PostingList union_with_fixed_skips(const PostingList &a, const PostingList &b, int interval);
+    // Same contract as union_(), skipping by galloping (1, 2, 4, ...) plus binary search.
+    static PostingList union_with_exponential_skips(const PostingList &a, const PostingList &b);
     static PostingList difference(const PostingList &a, const PostingList &b);
     // Legacy skip-named entry points now return union semantics, matching union_().
     static PostingList intersect_with_skips(const PostingList &a, const PostingList &b);

@@ -6,7 +6,6 @@
 #include <algorithm>
 #include <cctype>
 #include <cstdint>
-#include <iterator>
 #include <set>
 #include <stdexcept>
 #include <memory>
@@ -291,28 +290,13 @@ bool contains_only_stopwords(const std::string &query) {
     return found_stopword;
 }
 
-using IdSet = std::set<int>;
-IdSet set_union_of(const IdSet &a, const IdSet &b) {
-    IdSet result;
-    std::set_union(a.begin(), a.end(), b.begin(), b.end(),
-                   std::inserter(result, result.end()));
-    return result;
-}
-
-IdSet set_difference_of(const IdSet &a, const IdSet &b) {
-    IdSet result;
-    std::set_difference(a.begin(), a.end(), b.begin(), b.end(),
-                        std::inserter(result, result.end()));
-    return result;
-}
-
 class QueryParser {
   public:
     explicit QueryParser(const std::vector<Token> &tokens) : tokens_(tokens) {}
-    IdSet parse() {
+    PostingList parse() {
         if (tokens_.empty())
             return {};
-        IdSet result = parse_or();
+        PostingList result = parse_or();
         if (position_ != tokens_.size())
             throw std::runtime_error("Unexpected query operator or parenthesis.");
         return result;
@@ -321,12 +305,21 @@ class QueryParser {
   private:
     const std::vector<Token> &tokens_;
     size_t position_ = 0;
-    IdSet all_docs() const {
-        IdSet result;
-        if (docs)
+    // Build the complete document universe from the inverted index as a sorted
+    // PostingList so that NOT can subtract from it via difference().
+    PostingList all_docs() const {
+        PostingList universe;
+        if (docs) {
+            // Collect every docId that appears anywhere in the inverted index.
+            // Since we also need positions/frequency for downstream scoring,
+            // we merge all posting lists into one universe list.
+            std::set<int> seen;
             for (const auto &d : *docs)
-                result.insert(d.docId);
-        return result;
+                seen.insert(d.docId);
+            for (int id : seen)
+                universe.appendSortedPosting({id, {}, 0});
+        }
+        return universe;
     }
     bool starts_unary() const {
         return position_ < tokens_.size() &&
@@ -334,16 +327,16 @@ class QueryParser {
                 tokens_[position_].type == Token::PHRASE || tokens_[position_].type == Token::NOT ||
                 tokens_[position_].type == Token::LEFT);
     }
-    IdSet parse_or() {
-        IdSet result = parse_and();
+    PostingList parse_or() {
+        PostingList result = parse_and();
         while (position_ < tokens_.size() && tokens_[position_].type == Token::OR) {
             ++position_;
-            result = set_union_of(result, parse_and());
+            result = PostingsOperations::union_(result, parse_and());
         }
         return result;
     }
-    IdSet parse_and() {
-        IdSet result = parse_unary();
+    PostingList parse_and() {
+        PostingList result = parse_unary();
         while (position_ < tokens_.size()) {
             if (tokens_[position_].type == Token::AND) {
                 ++position_;
@@ -351,26 +344,22 @@ class QueryParser {
                 break;
             }
 
-            const IdSet right = parse_unary();
-            IdSet intersection;
-            std::set_intersection(result.begin(), result.end(), right.begin(), right.end(),
-                                  std::inserter(intersection, intersection.end()));
-            result = std::move(intersection);
+            result = PostingsOperations::intersect(result, parse_unary());
         }
         return result;
     }
-    IdSet parse_unary() {
+    PostingList parse_unary() {
         if (position_ >= tokens_.size())
             throw std::runtime_error("Expected a query term after operator.");
         if (tokens_[position_].type == Token::NOT) {
             ++position_;
-            IdSet result = all_docs();
-            const IdSet excluded = parse_unary();
-            return set_difference_of(result, excluded);
+            PostingList universe = all_docs();
+            PostingList excluded = parse_unary();
+            return PostingsOperations::difference(universe, excluded);
         }
         if (tokens_[position_].type == Token::LEFT) {
             ++position_;
-            IdSet result = parse_or();
+            PostingList result = parse_or();
             if (position_ >= tokens_.size() || tokens_[position_].type != Token::RIGHT)
                 throw std::runtime_error("Missing closing parenthesis.");
             ++position_;
@@ -389,17 +378,16 @@ class QueryParser {
         std::sort(result.begin(), result.end());
         return result;
     }
-    IdSet term_matches(const std::string &pattern) const {
-        IdSet result;
+    // Merge expanded-term posting lists using union_with_skips.
+    PostingList term_matches(const std::string &pattern) const {
         PostingList combined;
         for (const auto &term : expand(pattern)) {
             PostingList *posting = inverted_index ? inverted_index->get(term) : nullptr;
-            if (posting) combined = PostingsOperations::union_(combined, *posting);
+            if (posting) combined = PostingsOperations::union_with_skips(combined, *posting);
         }
-        for (int id : PostingsOperations::extract_doc_ids(combined)) result.insert(id);
-        return result;
+        return combined;
     }
-    IdSet phrase_matches(const std::string &phrase) const {
+    PostingList phrase_matches(const std::string &phrase) const {
         const auto phrase_terms = wl2::tokenize(phrase);
         if (phrase_terms.empty() || !docs)
             return {};
@@ -414,7 +402,9 @@ class QueryParser {
                 alternatives.push_back(matches);
             }
         }
-        IdSet result;
+        // Build a PostingList for phrase hits, sorted by docId.
+        // We collect matching doc IDs first, then emit sorted postings.
+        std::set<int> matched_ids;
         for (const auto &doc : *docs) {
             const auto sentences = sentence_tokens_for_document(doc);
             for (const auto &sentence : sentences) {
@@ -432,12 +422,15 @@ class QueryParser {
                                              });
                     }
                     if (match) {
-                        result.insert(doc.docId);
+                        matched_ids.insert(doc.docId);
                         break;
                     }
                 }
             }
         }
+        PostingList result;
+        for (int id : matched_ids)
+            result.appendSortedPosting({id, {}, 0});
         return result;
     }
 };
@@ -489,7 +482,7 @@ QueryResult resolve_query(const std::string &query) {
     if (!docs)
         return result;
     std::vector<Token> tokens;
-    IdSet matches;
+    PostingList matches;
     try {
         tokens = lex(query);
         QueryParser parser(tokens);
@@ -523,7 +516,7 @@ QueryResult resolve_query(const std::string &query) {
     }
     for (const auto &word : expanded_terms)
         result.doc_freq[word] = df[word];
-    for (int id : matches) {
+    for (int id : PostingsOperations::extract_doc_ids(matches)) {
         auto &frequencies = result.candidates[id];
         const auto found = terms.find(id);
         if (found == terms.end())
