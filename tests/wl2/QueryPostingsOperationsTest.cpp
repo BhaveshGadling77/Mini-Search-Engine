@@ -245,10 +245,16 @@ void test_skip_union_equals_normal_union() {
 } // namespace
 
 int main() {
+    std::cout << "Boolean operation test cases from QueryPostingsOperationsTest.cpp\n";
+    std::cout << "[RUN] Basic AND, OR, skip-OR, NOT, and compatibility entry points\n";
     test_basic_operations();
+    std::cout << "[RUN] Empty and boundary posting lists\n";
     test_empty_and_boundary_lists();
+    std::cout << "[RUN] Posting metadata preservation\n";
     test_posting_data_is_preserved();
+    std::cout << "[RUN] 250 generated sorted-input trials\n";
     test_many_sorted_inputs();
+    std::cout << "[RUN] Skip-union equivalence: 480 size/density trials and skewed inputs\n";
     test_skip_union_equals_normal_union();
 
     if (failures != 0) {

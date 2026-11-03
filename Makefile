@@ -10,7 +10,7 @@ PARSER := wl2/Pos_Inverted_Index
 TEXT := wl2/lib/src/libfreeling/text_processing.cc
 TRIE := wl2/trie
 
-.PHONY: all cli test test-wl2 test-boolean run trie clean pybind benchmark-union-small benchmark-union-big benchmark-skip-offsets storetime occurance
+.PHONY: all cli test test-wl2 test-boolean test-query-postings run trie clean pybind benchmark-union-small benchmark-union-big benchmark-skip-offsets storetime occurance
 
 all: cli
 
@@ -49,6 +49,7 @@ $(BUILD)/postings_test: $(ROOT)/tests/wl2/QueryPostingsOperationsTest.cpp $(OPS)
 # Posting operations extended tests (14 test cases)
 $(BUILD)/postings_ops_test: $(ROOT)/tests/wl2/PostingsOperationsTest.cpp $(OPS)/PostingsOperations.cpp $(W2)/Posting.cpp | $(BUILD)
 	$(CXX) $(CXXFLAGS) -I$(W2) -I$(OPS) $^ -o $@
+
 
 # Posting operations benchmark
 $(BUILD)/postings_benchmark: $(ROOT)/tests/wl2/PostingsOperationsBenchmark.cpp $(OPS)/PostingsOperations.cpp $(W2)/Posting.cpp | $(BUILD)
