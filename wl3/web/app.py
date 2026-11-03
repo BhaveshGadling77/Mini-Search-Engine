@@ -32,44 +32,171 @@ from wl3.integration.worklet2_adapter import Worklet2Error
 SESSION_COOKIE = "wl3_session"
 
 _PAGE = """<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><title>Mini Search Engine</title>
-<style>
- body{font-family:system-ui,sans-serif;max-width:760px;margin:2rem auto;padding:0 1rem;color:#222}
- form{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.5rem}
- input[type=text]{flex:1;min-width:220px;padding:.5rem}
- .r{margin-bottom:1.2rem} .r a{font-size:1.1rem} .u{color:#080;font-size:.85rem}
- .s{color:#555;font-size:.8rem} mark{background:#ffe58a}
- button{padding:.4rem .8rem;cursor:pointer} .msg{color:#06c;font-size:.85rem}
-</style></head><body>
-<h1>Mini Search Engine</h1>
-<form method="get" action="/">
- <input type="text" name="q" value="{{ q }}" placeholder="Search..." autofocus>
- <select name="mode">{% for m in ('tfidf','bm25','vector') %}
-  <option value="{{ m }}" {{ 'selected' if m == mode }}>{{ m }}</option>{% endfor %}</select>
- <input type="number" name="k" value="{{ k }}" min="1" max="50" style="width:4rem">
- <label><input type="checkbox" name="mmr" value="1" {{ 'checked' if mmr }}> diversify (MMR)</label>
- <button>Search</button>
-</form>
-{% if error %}<p style="color:#b00">{{ error }}</p>{% endif %}
-{% if notice %}<p class="msg" id="notice">{{ notice }}</p>{% endif %}
-{% if searched and not results and not error and not notice %}<p>No results.</p>{% endif %}
-{% for r in results %}
- <div class="r">
-  <a href="{{ r.url }}">{{ r.rank }}. {{ r.title }}</a>
-  <div class="u">{{ r.url }}</div>
-  <div>{{ r.snippet_html|safe }}</div>
-  <div class="s">score {{ '%.4f'|format(r.score) }} ·
-   <button onclick="fb({{ r.doc_id }}, this)">Mark relevant</button></div>
- </div>
-{% endfor %}
-<p class="msg" id="msg"></p>
-{% if results %}<button onclick="rs()">Reset feedback</button>{% endif %}
-<script>
-function fb(id, btn){fetch('/api/feedback',{method:'POST',headers:{'Content-Type':'application/json'},
- body:JSON.stringify({doc_id:id})}).then(r=>r.json()).then(d=>{
- document.getElementById('msg').textContent=d.ok?'Feedback saved — search again to see personalised results.':'Could not use that document.';});}
-function rs(){fetch('/api/reset',{method:'POST'}).then(()=>{document.getElementById('msg').textContent='Feedback cleared.';});}
-</script></body></html>"""
+<html lang="en">
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+ <meta name="theme-color" content="#17365b">
+ <title>Mini Search | Search portal</title>
+ <style>
+  :root{color-scheme:light;--navy:#17365b;--navy-dark:#102844;--ink:#1f2937;
+   --muted:#5b6777;--line:#d8dee8;--surface:#fff;--background:#f3f5f8;
+   --link:#174f8a;--focus:#2b6cb0}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--background);color:var(--ink);
+   font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+  .topbar{background:var(--navy);color:#fff;border-bottom:4px solid #d5aa4a}
+  .topbar-inner{max-width:1040px;margin:auto;padding:1rem 1.5rem;
+   display:flex;align-items:center;gap:.85rem}
+  .brand-mark{width:2.5rem;height:2.5rem;display:grid;place-items:center;
+   border:1px solid #aebed0;border-radius:4px;font-weight:700;letter-spacing:.04em}
+  .brand-name{font-size:1.05rem;font-weight:650;letter-spacing:.04em}
+  .brand-caption{color:#d5dfeb;font-size:.82rem}
+  main{max-width:900px;margin:2.5rem auto;padding:0 1.5rem}
+  .intro{margin-bottom:1.5rem}
+  h1{margin:0;color:var(--navy-dark);font-size:1.8rem;line-height:1.25}
+  .intro p{margin:.45rem 0 0;color:var(--muted)}
+  .search-panel,.result-card{background:var(--surface);border:1px solid var(--line);
+   border-radius:6px;box-shadow:0 2px 6px rgba(16,40,68,.04)}
+  .search-panel{padding:1.25rem}
+  .search-form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.65rem}
+  .query-wrap{display:flex;min-width:0}
+  .query-input{width:100%;min-width:0;padding:.75rem .85rem;
+   border:1px solid #aeb9c8;border-radius:4px 0 0 4px;color:var(--ink);
+   font:inherit}
+  .query-input:focus,select:focus,input[type=number]:focus,button:focus-visible,
+  a:focus-visible{outline:3px solid rgba(43,108,176,.3);outline-offset:1px}
+  .search-button,.feedback-button,.reset-button{font:inherit;cursor:pointer;
+   border-radius:4px}
+  .search-button{padding:.65rem 1.2rem;background:var(--navy);color:#fff;
+   border:1px solid var(--navy);font-weight:600}
+  .search-button:hover{background:var(--navy-dark)}
+  .search-options{grid-column:1/-1;display:flex;align-items:end;gap:1rem;
+   flex-wrap:wrap;padding-top:.35rem}
+  .field{display:grid;gap:.25rem;color:var(--muted);font-size:.82rem}
+  .field select,.field input[type=number]{min-height:2.35rem;padding:.4rem .55rem;
+   border:1px solid #aeb9c8;border-radius:4px;background:#fff;color:var(--ink);
+   font:inherit}
+  .field select{min-width:8rem}
+  .field input[type=number]{width:5rem}
+  .check-field{display:flex;align-items:center;gap:.45rem;min-height:2.35rem;
+   color:var(--ink);font-size:.9rem}
+  .check-field input{width:1rem;height:1rem;accent-color:var(--navy)}
+  .section-heading{display:flex;justify-content:space-between;align-items:center;
+   gap:1rem;margin:2rem 0 .75rem}
+  .section-heading h2{margin:0;color:var(--navy-dark);font-size:1.05rem}
+  .result-count{color:var(--muted);font-size:.88rem}
+  .result-list{display:grid;gap:.75rem}
+  .result-card{padding:1rem 1.1rem}
+  .result-title{color:var(--link);font-size:1.05rem;font-weight:600;
+   text-decoration:none}
+  .result-title:hover{text-decoration:underline}
+  .result-url{overflow-wrap:anywhere;margin:.2rem 0 .55rem;color:#39734d;
+   font-size:.84rem}
+  .snippet{margin:0}
+  mark{background:#fff0bf;color:inherit;padding:0 .08em}
+  .result-meta{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;
+   margin-top:.8rem;color:var(--muted);font-size:.82rem}
+  .feedback-button,.reset-button{padding:.35rem .65rem;background:#fff;
+   color:var(--navy);border:1px solid #aeb9c8;font-size:.82rem}
+  .feedback-button:hover,.reset-button:hover{background:#f1f5f9}
+  .reset-button{margin-top:1rem}
+  .notice,.error,.empty-state,.status{padding:.75rem 1rem;border-radius:4px}
+  .notice{border:1px solid #e5cb7a;background:#fff9e8;color:#654f14}
+  .error{border:1px solid #e6b9b9;background:#fff4f4;color:#8a2525}
+  .empty-state{margin-top:1rem;border:1px solid var(--line);background:#fff;
+   color:var(--muted)}
+  .status{padding:.45rem 0;color:var(--navy);font-size:.88rem}
+  footer{max-width:900px;margin:2rem auto 0;padding:1rem 1.5rem 1.5rem;
+   border-top:1px solid var(--line);color:var(--muted);font-size:.8rem}
+  @media(max-width:600px){
+   main{margin:1.5rem auto;padding:0 1rem}
+   .topbar-inner{padding:.8rem 1rem}
+   .search-form{grid-template-columns:1fr}
+   .query-wrap{display:grid;grid-template-columns:minmax(0,1fr) auto}
+   .query-input{border-radius:4px 0 0 4px}
+   .search-button{border-radius:0 4px 4px 0}
+   .search-options{gap:.75rem}
+   .section-heading{align-items:flex-start;flex-direction:column;gap:.2rem}
+   footer{padding-left:1rem;padding-right:1rem}
+  }
+ </style>
+</head>
+<body>
+ <header class="topbar">
+  <div class="topbar-inner">
+   <div class="brand-mark" aria-hidden="true">MS</div>
+   <div><div class="brand-name">MINI SEARCH</div>
+    <div class="brand-caption">Search portal</div></div>
+  </div>
+ </header>
+ <main>
+  <section class="intro" aria-labelledby="page-title">
+   <h1 id="page-title">Search</h1>
+   <p>Find relevant information across the indexed collection.</p>
+  </section>
+  <section class="search-panel" aria-label="Search options">
+   <form class="search-form" method="get" action="/">
+    <div class="query-wrap">
+     <input class="query-input" type="text" name="q" value="{{ q }}"
+      placeholder="Enter your search terms" aria-label="Search terms" autofocus>
+     <button class="search-button" type="submit">Search</button>
+    </div>
+    <div class="search-options">
+     <label class="field">Ranking method
+      <select name="mode">{% for m in ('tfidf','bm25','vector') %}
+       <option value="{{ m }}" {{ 'selected' if m == mode }}>{{ m|upper }}</option>{% endfor %}</select>
+     </label>
+     <label class="field">Results per page
+      <input type="number" name="k" value="{{ k }}" min="1" max="50">
+     </label>
+     <label class="check-field">
+      <input type="checkbox" name="mmr" value="1" {{ 'checked' if mmr }}>
+      Diversify results
+     </label>
+    </div>
+   </form>
+  </section>
+  {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+  {% if notice %}<p class="notice" id="notice" role="status">{{ notice }}</p>{% endif %}
+  {% if searched %}
+   <section aria-labelledby="results-heading">
+    <div class="section-heading">
+     <h2 id="results-heading">Search results</h2>
+     <span class="result-count">{{ results|length }} result{% if results|length != 1 %}s{% endif %}</span>
+    </div>
+    {% if not results and not error and not notice %}
+     <p class="empty-state">No results found. Try different search terms.</p>
+    {% endif %}
+    <div class="result-list">
+     {% for r in results %}
+      <article class="result-card">
+       <a class="result-title" href="{{ r.url }}">{{ r.rank }}. {{ r.title }}</a>
+       <div class="result-url">{{ r.url }}</div>
+       <p class="snippet">{{ r.snippet_html|safe }}</p>
+       <div class="result-meta">
+        <span>Relevance score: {{ '%.4f'|format(r.score) }}</span>
+        <button class="feedback-button" type="button"
+         onclick="fb({{ r.doc_id }})">Mark relevant</button>
+       </div>
+      </article>
+     {% endfor %}
+    </div>
+    {% if results %}<button class="reset-button" type="button" onclick="rs()">Reset feedback</button>{% endif %}
+   </section>
+  {% endif %}
+  <p class="status" id="msg" role="status" aria-live="polite"></p>
+ </main>
+ <footer>Mini Search · Information retrieval portal</footer>
+ <script>
+ function fb(id){fetch('/api/feedback',{method:'POST',headers:{'Content-Type':'application/json'},
+  body:JSON.stringify({doc_id:id})}).then(r=>r.json()).then(d=>{
+  document.getElementById('msg').textContent=d.ok?'Feedback saved — search again to see personalised results.':'Could not use that document.';});}
+ function rs(){fetch('/api/reset',{method:'POST'}).then(()=>{
+  document.getElementById('msg').textContent='Feedback cleared.';});}
+ </script>
+</body>
+</html>"""
 
 
 def create_app(engine: QueryEngine | None = None, **engine_kwargs) -> Flask:
