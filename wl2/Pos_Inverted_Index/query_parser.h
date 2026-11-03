@@ -19,6 +19,7 @@ struct DocSnippetData {
     std::string title, url, text;
 };
 void initialize_query_processor(const std::vector<Document> *documents);
+std::vector<std::string> expand_wildcard_terms(const std::string &pattern);
 QueryResult resolve_query(const std::string &query_string);
 CorpusStats get_corpus_stats();
 std::string get_index_version();

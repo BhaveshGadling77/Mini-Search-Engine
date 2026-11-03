@@ -10,7 +10,7 @@ PARSER := wl2/Pos_Inverted_Index
 TEXT := wl2/lib/src/libfreeling/text_processing.cc
 TRIE := wl2/trie
 
-.PHONY: all cli test test-wl2 test-boolean run clean pybind benchmark-union-small benchmark-union-big benchmark-skip-offsets storetime occurance
+.PHONY: all cli test test-wl2 test-boolean run trie clean pybind benchmark-union-small benchmark-union-big benchmark-skip-offsets storetime occurance
 
 all: cli
 
@@ -78,6 +78,13 @@ benchmark-skip-offsets: $(BUILD)/skip_offset_benchmark
 # Trie tests
 $(BUILD)/trie_test: $(TRIE)/trietests.cpp $(TRIE)/trie.cpp | $(BUILD)
 	$(CXX) $(CXXFLAGS) -I$(TRIE) $^ -o $@
+
+# Trie wildcard demo over the loaded corpus, with lemmatized outputs.
+$(BUILD)/trie_demo: $(ROOT)/tests/wl2/TrieDemo.cpp $(W2)/CorpusReader.cpp $(W2)/HashMap.cpp $(W2)/Posting.cpp $(W2)/Inverted_Index.cpp $(OPS)/PostingsOperations.cpp $(TRIE)/trie.cpp $(PARSER)/query_parser.cpp $(TEXT) | $(BUILD)
+	$(CXX) $(CXXFLAGS) -I$(W2) -I$(PARSER) -I$(OPS) -I$(TRIE) $^ -o $@
+
+trie: $(BUILD)/trie_demo
+	./$(BUILD)/trie_demo $(CORPUS)
 
 test-boolean: $(BUILD)/postings_test $(BUILD)/postings_ops_test $(BUILD)/bridge_test
 	@echo "Boolean Operations Unit Tests (randomized)"

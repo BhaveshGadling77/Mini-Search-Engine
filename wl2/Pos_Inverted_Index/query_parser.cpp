@@ -473,6 +473,15 @@ class QueryParser {
 };
 } // namespace
 
+std::vector<std::string> expand_wildcard_terms(const std::string &pattern) {
+    if (pattern.empty())
+        return {};
+    auto matches = trie_expansion(pattern);
+    if (matches.empty() && pattern.find('*') == std::string::npos && df.count(pattern))
+        return std::vector<std::string>{pattern};
+    return matches;
+}
+
 void initialize_query_processor(const std::vector<Document> *input) {
     docs = input;
     terms.clear();
