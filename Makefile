@@ -10,7 +10,7 @@ PARSER := wl2/Pos_Inverted_Index
 TEXT := wl2/lib/src/libfreeling/text_processing.cc
 TRIE := wl2/trie
 
-.PHONY: all cli test test-wl2 test-boolean run clean pybind benchmark-union-skips demo-union-skips
+.PHONY: all cli test test-wl2 test-boolean run clean pybind benchmark-union-small benchmark-union-big benchmark-skip-offsets
 
 all: cli
 
@@ -42,19 +42,26 @@ $(BUILD)/postings_ops_test: $(ROOT)/tests/wl2/PostingsOperationsTest.cpp $(OPS)/
 $(BUILD)/postings_benchmark: $(ROOT)/tests/wl2/PostingsOperationsBenchmark.cpp $(OPS)/PostingsOperations.cpp $(W2)/Posting.cpp | $(BUILD)
 	$(CXX) $(CXXFLAGS) -I$(W2) -I$(OPS) $^ -o $@
 
-# Compare union with and without the skip-aware implementation.
-$(BUILD)/union_skip_benchmark: $(ROOT)/tests/wl2/UnionSkipBenchmark.cpp $(OPS)/PostingsOperations.cpp $(W2)/Posting.cpp | $(BUILD)
+# Quick union benchmark (small inputs) using the production functions.
+$(BUILD)/union_skip_small: $(ROOT)/tests/wl2/UnionSkipComparisonDemo.cpp $(OPS)/PostingsOperations.cpp $(W2)/Posting.cpp | $(BUILD)
+	$(CXX) $(CXXFLAGS) -DSMALL_BENCHMARK -I$(W2) -I$(OPS) $^ -o $@
+
+benchmark-union-small: $(BUILD)/union_skip_small
+	./$(BUILD)/union_skip_small
+
+# Broader union benchmark (large inputs) using the production functions.
+$(BUILD)/union_skip_big: $(ROOT)/tests/wl2/UnionSkipBenchmark.cpp $(OPS)/PostingsOperations.cpp $(W2)/Posting.cpp | $(BUILD)
 	$(CXX) $(CXXFLAGS) -I$(W2) -I$(OPS) $^ -o $@
 
-benchmark-union-skips: $(BUILD)/union_skip_benchmark
-	./$(BUILD)/union_skip_benchmark
+benchmark-union-big: $(BUILD)/union_skip_big
+	./$(BUILD)/union_skip_big
 
-# Show why skips help: comparison counts + timing on plain docId vectors.
-$(BUILD)/union_skip_demo: $(ROOT)/tests/wl2/UnionSkipComparisonDemo.cpp | $(BUILD)
-	$(CXX) $(CXXFLAGS) $^ -o $@
+# Compare the fixed skip intervals, along with adaptive and exponential skips.
+$(BUILD)/skip_offset_benchmark: $(ROOT)/tests/wl2/PostingsOperationsBenchmark.cpp $(OPS)/PostingsOperations.cpp $(W2)/Posting.cpp | $(BUILD)
+	$(CXX) $(CXXFLAGS) -I$(W2) -I$(OPS) $^ -o $@
 
-demo-union-skips: $(BUILD)/union_skip_demo
-	./$(BUILD)/union_skip_demo
+benchmark-skip-offsets: $(BUILD)/skip_offset_benchmark
+	./$(BUILD)/skip_offset_benchmark
 
 # Trie tests
 $(BUILD)/trie_test: $(TRIE)/trietests.cpp $(TRIE)/trie.cpp | $(BUILD)

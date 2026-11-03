@@ -13,13 +13,18 @@ namespace {
 
 using Clock = std::chrono::steady_clock;
 constexpr int SAMPLES = 7;
-constexpr int ITERATIONS = 1000;
+constexpr int ITERATIONS = 100;
 
 PostingList make_list(const std::vector<int> &ids) {
     PostingList result;
     result.reserve(ids.size());
-    for (int id : ids)
-        result.addOccurrence(id, 0);
+    for (int id : ids) {
+        Posting posting;
+        posting.docId = id;
+        posting.positions.push_back(0);
+        posting.frequency = 1;
+        result.appendSortedPosting(posting);
+    }
     return result;
 }
 
@@ -155,7 +160,16 @@ int main() {
                    make_list(clustered(50, 2000, 2000, 0)),
                    make_list(clustered(50, 2000, 2000, 2000)));
 
-    // 6. Empty list (Boundary case)
+    // 6. Interleaved lists (Skip pointers should not help)
+    std::vector<int> interleaved_left, interleaved_right;
+    for (int id = 0; id < 100000; ++id) {
+        if (id % 2 == 0) interleaved_left.push_back(id);
+        else interleaved_right.push_back(id);
+    }
+    benchmark_case("Interleaved lists", "Dense alternating IDs; baseline fallback",
+                   make_list(interleaved_left), make_list(interleaved_right));
+
+    // 7. Empty list (Boundary case)
     benchmark_case("Empty list", "Boundary case",
                    list_left, PostingList{});
 

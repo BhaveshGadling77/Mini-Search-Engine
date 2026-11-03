@@ -35,7 +35,6 @@ PostingList PostingsOperations::union_(const PostingList &a, const PostingList &
     const std::vector<Posting> &left = a.get_all();
     const std::vector<Posting> &right = b.get_all();
     PostingList result;
-    result.reserve(left.size() + right.size());
     size_t i = 0, j = 0;
 
     while (i < left.size() && j < right.size()) {
@@ -110,13 +109,45 @@ PostingList union_skip_merge(const PostingList &a, const PostingList &b, SkipKin
     const std::vector<Posting> &left = a.get_all();
     const std::vector<Posting> &right = b.get_all();
     PostingList result;
-    result.reserve(left.size() + right.size());
     size_t i = 0, j = 0;
 
     auto skip = [&](const std::vector<Posting> &list, size_t pos, int target, size_t stride) {
         return kind == SkipKind::Fixed ? follow_fixed_skips(list, pos, target, stride)
                                        : follow_exponential_skips(list, pos, target);
     };
+
+    // Probe the first unequal pair before selecting the merge loop. If that
+    // pair offers no useful jump (typical for dense interleaving), use the
+    // ordinary loop from the beginning instead of paying skip-path overhead.
+    size_t probe_i = i, probe_j = j;
+    size_t equal_prefix = 0;
+    while (probe_i < left.size() && probe_j < right.size() &&
+           left[probe_i].docId == right[probe_j].docId && equal_prefix < 2) {
+        ++probe_i;
+        ++probe_j;
+        ++equal_prefix;
+    }
+    if (equal_prefix == 2 || probe_i >= left.size() || probe_j >= right.size())
+        return PostingsOperations::union_(a, b);
+
+    size_t first_pos = probe_i;
+    size_t first_jump = probe_i;
+    size_t first_stride = left_stride;
+    if (left[probe_i].docId < right[probe_j].docId)
+        first_jump = skip(left, probe_i, right[probe_j].docId, left_stride);
+    else {
+        first_pos = probe_j;
+        first_stride = right_stride;
+        first_jump = skip(right, probe_j, left[probe_i].docId, right_stride);
+    }
+    // A one-block jump rarely repays the extra control flow and range-copy
+    // setup. Use the baseline unless the first probe can skip at least two
+    // blocks; this also makes dense/interleaved workloads pay only one probe.
+    const size_t min_jump = std::max<size_t>(2, 2 * first_stride);
+    if (first_jump <= first_pos || first_jump - first_pos < min_jump)
+        return PostingsOperations::union_(a, b);
+
+    result.reserve(left.size() + right.size());
 
     while (i < left.size() && j < right.size()) {
         const int l = left[i].docId;
@@ -130,14 +161,20 @@ PostingList union_skip_merge(const PostingList &a, const PostingList &b, SkipKin
             // left[i] < right[j]: left[i] is certainly in the union. Jump ahead over
             // whole blocks that are still < right[j] and bulk-copy them.
             size_t next = skip(left, i, r, left_stride);
-            if (next == i) next = i + 1;
-            result.appendSortedRange(left, i, next);
-            i = next;
+            if (next == i) {
+                append_posting(result, left[i++]);
+            } else {
+                result.appendSortedRange(left, i, next);
+                i = next;
+            }
         } else {
             size_t next = skip(right, j, l, right_stride);
-            if (next == j) next = j + 1;
-            result.appendSortedRange(right, j, next);
-            j = next;
+            if (next == j) {
+                append_posting(result, right[j++]);
+            } else {
+                result.appendSortedRange(right, j, next);
+                j = next;
+            }
         }
     }
     if (i < left.size()) result.appendSortedRange(left, i, left.size());
