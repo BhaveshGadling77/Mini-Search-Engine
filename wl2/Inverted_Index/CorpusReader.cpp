@@ -4,12 +4,10 @@
 #include <iostream>
 #include <sstream>
 
-static string extractString(const string &text, size_t start, size_t end,
-                            const string &key);
+static string extractString(const string &text, size_t start, size_t end, const string &key);
 
-// ADDED: Extract a metadata value from the meta object
-static string extractMetaValue(const string& text, size_t objStart,
-                               size_t objEnd, const string& key) {
+// Extract a metadata value from the meta object
+static string extractMetaValue(const string& text, size_t objStart, size_t objEnd, const string& key) {
     size_t metaPos = text.find("\"meta\"", objStart);
     if (metaPos == string::npos || metaPos > objEnd) return "";
 
@@ -47,7 +45,7 @@ static int extractMetaInt(const string& text, size_t objStart,
         start++;
     }
 
-    // ADDED: Handle integer values stored as strings using stoi()
+    // Handle integer values stored as strings using stoi()
     if (start < metaEnd && text[start] == '"') {
         start++;
     }

@@ -1,8 +1,15 @@
 #include "Inverted_Index.h"
 #include "Posting.h"
 #include "../lib/src/include/text_processing.h"
+#include <chrono>
 
-// positional inverted index
+double Inverted_Index::measureStorageTimeMs(const vector<Document>& docs) {
+    const auto start = std::chrono::steady_clock::now();
+    build(docs);
+    return std::chrono::duration<double, std::milli>(
+        std::chrono::steady_clock::now() - start).count();
+}
+
 void Inverted_Index::build(const vector<Document>& docs) {
     for (size_t d = 0; d < docs.size(); d++) {
         const Document& doc = docs[d];
@@ -18,8 +25,6 @@ void Inverted_Index::build(const vector<Document>& docs) {
         auto index_sentence = [&]() {
             const auto words = wl2::tokenize(sentence);
             for (const auto& word : words) {
-                // Keep stopwords in positional postings for exact phrase
-                // checks; ordinary term lookup still filters them out.
                 const string term = wl2::is_stopword(word) ? word : wl2::lemmatize(word);
                 index.update(term, doc.docId, position++);
             }

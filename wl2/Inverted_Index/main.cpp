@@ -1,6 +1,11 @@
-#include "CorpusReader.h"
-#include "HashMap.h"
 #include <iostream>
+#include <string>
+#include <vector>
+
+#include "CorpusReader.h"
+#include "Document_HashMap.h"
+#include "Inverted_Index.h"
+
 using namespace std;
 
 int main() {

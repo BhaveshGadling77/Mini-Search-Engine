@@ -10,7 +10,7 @@ PARSER := wl2/Pos_Inverted_Index
 TEXT := wl2/lib/src/libfreeling/text_processing.cc
 TRIE := wl2/trie
 
-.PHONY: all cli test test-wl2 test-boolean run clean pybind benchmark-union-small benchmark-union-big benchmark-skip-offsets
+.PHONY: all cli test test-wl2 test-boolean run clean pybind benchmark-union-small benchmark-union-big benchmark-skip-offsets storetime occurance
 
 all: cli
 
@@ -25,6 +25,18 @@ cli: $(BUILD)/search_cli
 
 run: cli
 	./$(BUILD)/search_cli $(CORPUS)
+
+$(BUILD)/storetime: $(W2)/store_time.cpp $(W2)/CorpusReader.cpp $(W2)/HashMap.cpp $(W2)/Posting.cpp $(W2)/Inverted_Index.cpp $(TEXT) | $(BUILD)
+	$(CXX) $(CXXFLAGS) -I$(W2) -I$(ROOT)/wl2/lib/src/include $^ -o $@
+
+storetime: $(BUILD)/storetime
+	./$(BUILD)/storetime
+
+$(BUILD)/occurance: $(W2)/occurance.cpp $(W2)/CorpusReader.cpp $(W2)/HashMap.cpp $(W2)/Posting.cpp $(W2)/Inverted_Index.cpp $(TEXT) | $(BUILD)
+	$(CXX) $(CXXFLAGS) -I$(W2) -I$(ROOT)/wl2/lib/src/include $^ -o $@
+
+occurance: $(BUILD)/occurance
+	./$(BUILD)/occurance
 
 # Worklet 3 bridge test
 $(BUILD)/bridge_test: $(ROOT)/tests/wl2/Worklet3BridgeTest.cpp $(W2)/CorpusReader.cpp $(W2)/HashMap.cpp $(W2)/Posting.cpp $(W2)/Inverted_Index.cpp $(OPS)/PostingsOperations.cpp $(TRIE)/trie.cpp $(PARSER)/query_parser.cpp $(TEXT) | $(BUILD)
