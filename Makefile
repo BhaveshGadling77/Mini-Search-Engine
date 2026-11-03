@@ -10,7 +10,7 @@ PARSER := wl2/Pos_Inverted_Index
 TEXT := wl2/lib/src/libfreeling/text_processing.cc
 TRIE := wl2/trie
 
-.PHONY: all cli test test-wl2 test-boolean run trie clean pybind benchmark-union-small benchmark-union-big benchmark-skip-offsets storetime occurance
+.PHONY: all cli test test-wl2 test-boolean run trie lemma clean pybind benchmark-union-small benchmark-union-big benchmark-skip-offsets storetime occurance
 
 all: cli
 
@@ -85,6 +85,13 @@ $(BUILD)/trie_demo: $(ROOT)/tests/wl2/TrieDemo.cpp $(W2)/CorpusReader.cpp $(W2)/
 
 trie: $(BUILD)/trie_demo
 	./$(BUILD)/trie_demo $(CORPUS)
+
+# Small lemmatization demo to show several inflected forms collapsing to one lemma.
+$(BUILD)/lemma_demo: $(ROOT)/tests/wl2/LemmaDemo.cpp $(TEXT) | $(BUILD)
+	$(CXX) $(CXXFLAGS) -I$(ROOT)/wl2/lib/src/include $^ -o $@
+
+lemma: $(BUILD)/lemma_demo
+	./$(BUILD)/lemma_demo
 
 test-boolean: $(BUILD)/postings_test $(BUILD)/postings_ops_test $(BUILD)/bridge_test
 	@echo "Boolean Operations Unit Tests (randomized)"
