@@ -9,9 +9,9 @@ using namespace std;
 
 class TrieNode{
     public:
-        string label;               // edge label leading INTO this node
+        string label;
         bool endOfWord;
-        TrieNode* children[26];     // indexed by first char of the child's label
+        TrieNode* children[26];
 
         TrieNode(string l = ""){
             label = l;
@@ -24,8 +24,8 @@ class TrieNode{
 
 class Trie{
     private:
-        TrieNode* root;             // forward words
-        TrieNode* revRoot;          // reversed words (for suffix search)
+        TrieNode* root;
+        TrieNode* revRoot;
         unordered_map<string, unordered_set<string>> kgramIndex;
         int k = 3;
         void insertInto(string word, TrieNode* start);

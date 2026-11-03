@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cstdint>
+#include <limits>
 #include <set>
 #include <stdexcept>
 #include <memory>
@@ -189,35 +190,6 @@ std::vector<std::string> document_tokens(const Document &doc) {
     return tokens;
 }
 
-std::vector<std::vector<std::string>> sentence_tokens_for_document(const Document &doc) {
-    std::vector<std::vector<std::string>> sentences;
-    if (!doc.text.empty()) {
-        std::string current;
-        current.reserve(doc.text.size());
-        for (char c : doc.text) {
-            current.push_back(c);
-            if (c == '.' || c == '!' || c == '?') {
-                if (!current.empty()) {
-                    const auto tokens = wl2::tokenize(current);
-                    if (!tokens.empty())
-                        sentences.push_back(tokens);
-                    current.clear();
-                }
-            }
-        }
-        if (!current.empty()) {
-            const auto tokens = wl2::tokenize(current);
-            if (!tokens.empty())
-                sentences.push_back(tokens);
-        }
-    }
-    if (!sentences.empty())
-        return sentences;
-    if (!doc.tokens.empty())
-        return {doc.tokens};
-    return {};
-}
-
 struct Token {
     enum Type { WORD, PHRASE, AND, OR, NOT, LEFT, RIGHT } type;
     std::string value;
@@ -389,48 +361,113 @@ class QueryParser {
     }
     PostingList phrase_matches(const std::string &phrase) const {
         const auto phrase_terms = wl2::tokenize(phrase);
-        if (phrase_terms.empty() || !docs)
+        if (phrase_terms.empty() || !inverted_index)
             return {};
+
         std::vector<std::vector<std::string>> alternatives;
         for (const auto &word : phrase_terms) {
             if (word.find('*') == std::string::npos)
-                alternatives.push_back({normalize(word)});
+                alternatives.push_back({wl2::is_stopword(word) ? word : wl2::lemmatize(word)});
             else {
                 const auto matches = trie_expansion(word);
                 if (matches.empty())
                     return {};
-                alternatives.push_back(matches);
+                auto unique_matches = matches;
+                std::sort(unique_matches.begin(), unique_matches.end());
+                unique_matches.erase(std::unique(unique_matches.begin(), unique_matches.end()),
+                                     unique_matches.end());
+                alternatives.push_back(std::move(unique_matches));
             }
         }
-        // Build a PostingList for phrase hits, sorted by docId.
-        // We collect matching doc IDs first, then emit sorted postings.
-        std::set<int> matched_ids;
-        for (const auto &doc : *docs) {
-            const auto sentences = sentence_tokens_for_document(doc);
-            for (const auto &sentence : sentences) {
-                if (sentence.size() < phrase_terms.size())
+
+        std::vector<std::vector<const PostingList *>> positional_lists;
+        positional_lists.reserve(alternatives.size());
+        for (const auto &allowed_terms : alternatives) {
+            std::vector<const PostingList *> lists;
+            for (const auto &term : allowed_terms) {
+                PostingList *posting = inverted_index->get_positional(term);
+                if (posting && !posting->get_all().empty())
+                    lists.push_back(posting);
+            }
+            if (lists.empty())
+                return {};
+            positional_lists.push_back(std::move(lists));
+        }
+
+        // Start from the least frequent phrase slot to minimize candidate
+        // documents. The postings are sorted by docId by the inverted index.
+        size_t seed_slot = 0;
+        size_t seed_frequency = std::numeric_limits<size_t>::max();
+        for (size_t slot = 0; slot < positional_lists.size(); ++slot) {
+            size_t frequency = 0;
+            for (const PostingList *list : positional_lists[slot])
+                frequency += list->get_all().size();
+            if (frequency < seed_frequency) {
+                seed_frequency = frequency;
+                seed_slot = slot;
+            }
+        }
+
+        std::vector<int> candidate_ids;
+        for (const PostingList *list : positional_lists[seed_slot])
+            for (const Posting &posting : list->get_all())
+                candidate_ids.push_back(posting.docId);
+        std::sort(candidate_ids.begin(), candidate_ids.end());
+        candidate_ids.erase(std::unique(candidate_ids.begin(), candidate_ids.end()),
+                            candidate_ids.end());
+
+        PostingList result;
+        result.reserve(candidate_ids.size());
+        for (int doc_id : candidate_ids) {
+            std::vector<std::vector<const Posting *>> document_postings(positional_lists.size());
+            for (size_t slot = 0; slot < positional_lists.size(); ++slot) {
+                for (const PostingList *list : positional_lists[slot]) {
+                    const auto &postings = list->get_all();
+                    const auto found = std::lower_bound(
+                        postings.begin(), postings.end(), doc_id,
+                        [](const Posting &posting, int id) { return posting.docId < id; });
+                    if (found != postings.end() && found->docId == doc_id)
+                        document_postings[slot].push_back(&*found);
+                }
+            }
+
+            bool matched = false;
+            for (const PostingList *seed_list : positional_lists[seed_slot]) {
+                const auto &postings = seed_list->get_all();
+                const auto found = std::lower_bound(
+                    postings.begin(), postings.end(), doc_id,
+                    [](const Posting &posting, int id) { return posting.docId < id; });
+                if (found == postings.end() || found->docId != doc_id)
                     continue;
-                for (size_t start = 0; start + phrase_terms.size() <= sentence.size(); ++start) {
-                    bool match = true;
-                    for (size_t offset = 0; offset < phrase_terms.size() && match; ++offset) {
-                        const std::string token = normalize(sentence[start + offset]);
-                        const auto &allowed = alternatives[offset];
-                        match = std::any_of(allowed.begin(), allowed.end(),
-                                             [&](const std::string &candidate) {
-                                                 return candidate == token ||
-                                                        wildcard_matches(token, candidate);
-                                             });
+
+                for (int seed_position : found->positions) {
+                    if (seed_position < static_cast<int>(seed_slot))
+                        continue;
+                    const int phrase_start = seed_position - static_cast<int>(seed_slot);
+                    bool full_match = true;
+                    for (size_t slot = 0; slot < document_postings.size() && full_match; ++slot) {
+                        const int expected_position = phrase_start + static_cast<int>(slot);
+                        const bool slot_matches = std::any_of(
+                            document_postings[slot].begin(), document_postings[slot].end(),
+                            [expected_position](const Posting *posting) {
+                                return std::binary_search(posting->positions.begin(),
+                                                          posting->positions.end(),
+                                                          expected_position);
+                            });
+                        full_match = slot_matches;
                     }
-                    if (match) {
-                        matched_ids.insert(doc.docId);
+                    if (full_match) {
+                        matched = true;
                         break;
                     }
                 }
+                if (matched)
+                    break;
             }
+
+            if (matched)
+                result.appendSortedPosting({doc_id, {}, 0});
         }
-        PostingList result;
-        for (int id : matched_ids)
-            result.appendSortedPosting({id, {}, 0});
         return result;
     }
 };
@@ -453,6 +490,25 @@ void initialize_query_processor(const std::vector<Document> *input) {
     for (const auto &doc : *docs) {
         auto &counts = terms[doc.docId];
         hash ^= static_cast<uint64_t>(doc.docId);
+        hash *= 1099511628211ULL;
+        // Phrase postings retain stopwords and sentence boundaries, so include
+        // the source text in the index version used by query-result caches.
+        if (!doc.text.empty()) {
+            for (unsigned char c : doc.text) {
+                hash ^= c;
+                hash *= 1099511628211ULL;
+            }
+        } else {
+            for (const auto &token : doc.tokens) {
+                for (unsigned char c : token) {
+                    hash ^= c;
+                    hash *= 1099511628211ULL;
+                }
+                hash ^= 0xff;
+                hash *= 1099511628211ULL;
+            }
+        }
+        hash ^= 0xfe;
         hash *= 1099511628211ULL;
         for (const auto &token : terms_for_document(doc)) {
             ++counts[token];

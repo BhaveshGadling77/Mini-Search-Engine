@@ -1,14 +1,6 @@
-<<<<<<< HEAD
 #include "CorpusReader.h"
 #include "HashMap.h"
 #include <iostream>
-=======
-#include <iostream>
-#include "CorpusReader.h"
-#include "Document_HashMap.h"
-#include "Inverted_Index.h"
-
->>>>>>> 4964a42fa731b5bbadfc149e4137ae033055247f
 using namespace std;
 
 int main() {

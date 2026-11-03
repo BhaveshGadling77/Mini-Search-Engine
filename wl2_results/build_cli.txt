@@ -1,0 +1,6 @@
+mkdir -p ./build
+g++ -std=c++17 -Wall -Wextra -O2 -Iwl2/Inverted_Index -Iwl2/Pos_Inverted_Index -Iwl2/boolean_operations -Iwl2/trie cli/main.cpp wl2/Inverted_Index/CorpusReader.cpp wl2/Inverted_Index/HashMap.cpp wl2/Inverted_Index/Posting.cpp wl2/Inverted_Index/Inverted_Index.cpp wl2/boolean_operations/PostingsOperations.cpp wl2/trie/trie.cpp wl2/Pos_Inverted_Index/query_parser.cpp wl2/lib/src/libfreeling/text_processing.cc -o build/search_cli
+
+real	0m6.133s
+user	0m5.696s
+sys	0m0.431s

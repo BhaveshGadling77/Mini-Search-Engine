@@ -394,7 +394,7 @@ vector<Document> readDocuments(const string &filename) {
             doc.url = extractString(object, 0, object.size(), "url");
             doc.text = extractString(object, 0, object.size(), "text");
 
-            // ADDED: Extract metadata fields from the meta object
+            // Extract metadata fields from the meta object
             doc.meta.crawled_at =
                 extractMetaValue(text, objStart, objEnd, "crawled_at");
 

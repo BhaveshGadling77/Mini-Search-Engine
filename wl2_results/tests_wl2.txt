@@ -1,0 +1,52 @@
+g++ -std=c++17 -Wall -Wextra -O2 -Iwl2/Inverted_Index -Iwl2/Pos_Inverted_Index -Iwl2/boolean_operations -Iwl2/trie tests/wl2/Worklet3BridgeTest.cpp wl2/Inverted_Index/CorpusReader.cpp wl2/Inverted_Index/HashMap.cpp wl2/Inverted_Index/Posting.cpp wl2/Inverted_Index/Inverted_Index.cpp wl2/boolean_operations/PostingsOperations.cpp wl2/trie/trie.cpp wl2/Pos_Inverted_Index/query_parser.cpp wl2/lib/src/libfreeling/text_processing.cc -o build/bridge_test
+g++ -std=c++17 -Wall -Wextra -O2 -Iwl2/Inverted_Index -Iwl2/boolean_operations tests/wl2/QueryPostingsOperationsTest.cpp wl2/boolean_operations/PostingsOperations.cpp wl2/Inverted_Index/Posting.cpp -o build/postings_test
+g++ -std=c++17 -Wall -Wextra -O2 -Iwl2/Inverted_Index -Iwl2/boolean_operations tests/wl2/PostingsOperationsTest.cpp wl2/boolean_operations/PostingsOperations.cpp wl2/Inverted_Index/Posting.cpp -o build/postings_ops_test
+g++ -std=c++17 -Wall -Wextra -O2 -Iwl2/trie wl2/trie/trietests.cpp wl2/trie/trie.cpp -o build/trie_test
+././build/bridge_test
+Worklet 2 bridge tests passed
+././build/postings_test
+All PostingList Boolean operation tests passed.
+././build/postings_ops_test
+ Mini Search Engine - Boolean Operations 
+ Test Suite (Part 3)                     
+[RUN] test_baseline_example...
+  [PASS] test_baseline_example
+[RUN] test_1_both_lists_empty...
+  [PASS] test_1_both_lists_empty
+[RUN] test_2_first_list_empty...
+  [PASS] test_2_first_list_empty
+[RUN] test_3_second_list_empty...
+  [PASS] test_3_second_list_empty
+[RUN] test_4_disjoint_lists...
+  [PASS] test_4_disjoint_lists
+[RUN] test_5_identical_lists...
+  [PASS] test_5_identical_lists
+[RUN] test_6_subset_relationships...
+  [PASS] test_6_subset_relationships
+[RUN] test_7_single_element_lists...
+  [PASS] test_7_single_element_lists
+[RUN] test_8_single_matching_document...
+  [PASS] test_8_single_matching_document
+[RUN] test_9_no_matching_documents...
+  [PASS] test_9_no_matching_documents
+[RUN] test_10_different_lengths...
+  [PASS] test_10_different_lengths
+[RUN] test_11_metadata_preservation...
+  [PASS] test_11_metadata_preservation
+[RUN] test_12_large_posting_lists...
+    [Perf] Large Lists (N=10000): AND=67us, OR=840us, NOT=204us, SkipUnion=772us
+  [PASS] test_12_large_posting_lists
+[RUN] test_13_memory_safety_and_ownership...
+  [PASS] test_13_memory_safety_and_ownership
+[RUN] test_14_skip_union_equivalence...
+  [PASS] test_14_skip_union_equivalence
+ Total Passed: 15
+ Total Failed: 0
+././build/trie_test
+Prefix 'ca': car card care cat 
+Prefix 'car': car card care 
+Prefix 'xyz': 
+Suffix 'ar': car 
+Suffix 'at': cat 
+Suffix 'ple': apple 
+Suffix 'xyz': 

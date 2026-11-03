@@ -1,0 +1,305 @@
+##### 0. ENVIRONMENT
+Linux 7.0.0-42-generic x86_64
+g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+clang++: not installed
+16
+model name	: 13th Gen Intel(R) Core(TM) i5-13500H
+Mem:           15096       10019        1473        1881        5160        5076
+
+##### 1. BUILD (make clean && make all) + compiler warnings
+cli build exit/real time:
+real	0m6.133s
+cli binary: OK
+
+##### 2. CORRECTNESS TESTS
+make test-wl2      exit code: 0   (0 = all passed)
+make test-boolean  exit code: 0   (0 = all passed)
+--- tail of test-wl2:
+[RUN] test_14_skip_union_equivalence...
+  [PASS] test_14_skip_union_equivalence
+ Total Passed: 15
+ Total Failed: 0
+././build/trie_test
+Prefix 'ca': car card care cat 
+Prefix 'car': car card care 
+Prefix 'xyz': 
+Suffix 'ar': car 
+Suffix 'at': cat 
+Suffix 'ple': apple 
+Suffix 'xyz': 
+--- tail of test-boolean:
+[RUN] test_13_memory_safety_and_ownership...
+  [PASS] test_13_memory_safety_and_ownership
+[RUN] test_14_skip_union_equivalence...
+  [PASS] test_14_skip_union_equivalence
+ Total Passed: 15
+ Total Failed: 0
+
+Boolean Query Integration Tests 
+././build/bridge_test
+Worklet 2 bridge tests passed
+
+All Boolean tests passed
+total compiler warnings (-Wall -Wextra) across cli + tests: 0
+
+##### 3. BOOLEAN / SKIP-UNION BENCHMARKS (5 repeated runs, each already a median of 7 samples)
+--- union_ vs union_with_skips, speedup per case, per run:
+run 1:
+Test:    Random sparse lists
+  Speedup (T_ordinary / T_skip): 1.0016x  --> Similar performance (~equal)
+Test:    Identical lists
+  Speedup (T_ordinary / T_skip): 0.9906x  --> Similar performance (~equal)
+Test:    Disjoint lists
+  Speedup (T_ordinary / T_skip): 1.2304x  --> Skip implementation is FASTER
+Test:    Tiny vs huge lists
+  Speedup (T_ordinary / T_skip): 1.2218x  --> Skip implementation is FASTER
+Test:    Clustered runs
+  Speedup (T_ordinary / T_skip): 1.2522x  --> Skip implementation is FASTER
+Test:    Interleaved lists
+  Speedup (T_ordinary / T_skip): 1.0138x  --> Similar performance (~equal)
+Test:    Empty list
+  Speedup (T_ordinary / T_skip): 1.0010x  --> Similar performance (~equal)
+run 2:
+Test:    Random sparse lists
+  Speedup (T_ordinary / T_skip): 1.0104x  --> Similar performance (~equal)
+Test:    Identical lists
+  Speedup (T_ordinary / T_skip): 1.0006x  --> Similar performance (~equal)
+Test:    Disjoint lists
+  Speedup (T_ordinary / T_skip): 1.1470x  --> Skip implementation is FASTER
+Test:    Tiny vs huge lists
+  Speedup (T_ordinary / T_skip): 1.2172x  --> Skip implementation is FASTER
+Test:    Clustered runs
+  Speedup (T_ordinary / T_skip): 1.2213x  --> Skip implementation is FASTER
+Test:    Interleaved lists
+  Speedup (T_ordinary / T_skip): 1.0074x  --> Similar performance (~equal)
+Test:    Empty list
+  Speedup (T_ordinary / T_skip): 0.9995x  --> Similar performance (~equal)
+run 3:
+Test:    Random sparse lists
+  Speedup (T_ordinary / T_skip): 1.0114x  --> Similar performance (~equal)
+Test:    Identical lists
+  Speedup (T_ordinary / T_skip): 1.0107x  --> Similar performance (~equal)
+Test:    Disjoint lists
+  Speedup (T_ordinary / T_skip): 1.1593x  --> Skip implementation is FASTER
+Test:    Tiny vs huge lists
+  Speedup (T_ordinary / T_skip): 1.2286x  --> Skip implementation is FASTER
+Test:    Clustered runs
+  Speedup (T_ordinary / T_skip): 1.2179x  --> Skip implementation is FASTER
+Test:    Interleaved lists
+  Speedup (T_ordinary / T_skip): 0.9969x  --> Similar performance (~equal)
+Test:    Empty list
+  Speedup (T_ordinary / T_skip): 1.0042x  --> Similar performance (~equal)
+run 4:
+Test:    Random sparse lists
+  Speedup (T_ordinary / T_skip): 1.0080x  --> Similar performance (~equal)
+Test:    Identical lists
+  Speedup (T_ordinary / T_skip): 1.0113x  --> Similar performance (~equal)
+Test:    Disjoint lists
+  Speedup (T_ordinary / T_skip): 1.1917x  --> Skip implementation is FASTER
+Test:    Tiny vs huge lists
+  Speedup (T_ordinary / T_skip): 1.2450x  --> Skip implementation is FASTER
+Test:    Clustered runs
+  Speedup (T_ordinary / T_skip): 1.1881x  --> Skip implementation is FASTER
+Test:    Interleaved lists
+  Speedup (T_ordinary / T_skip): 0.9954x  --> Similar performance (~equal)
+Test:    Empty list
+  Speedup (T_ordinary / T_skip): 1.0103x  --> Similar performance (~equal)
+run 5:
+Test:    Random sparse lists
+  Speedup (T_ordinary / T_skip): 0.9866x  --> Similar performance (~equal)
+Test:    Identical lists
+  Speedup (T_ordinary / T_skip): 0.9778x  --> Similar performance (~equal)
+Test:    Disjoint lists
+  Speedup (T_ordinary / T_skip): 1.1907x  --> Skip implementation is FASTER
+Test:    Tiny vs huge lists
+  Speedup (T_ordinary / T_skip): 1.2265x  --> Skip implementation is FASTER
+Test:    Clustered runs
+  Speedup (T_ordinary / T_skip): 1.2131x  --> Skip implementation is FASTER
+Test:    Interleaved lists
+  Speedup (T_ordinary / T_skip): 1.0217x  --> Similar performance (~equal)
+Test:    Empty list
+  Speedup (T_ordinary / T_skip): 0.9917x  --> Similar performance (~equal)
+--- skip-offset comparison (plain vs sqrt vs fixed vs exponential), raw:
+g++ -std=c++17 -Wall -Wextra -O2 -Iwl2/Inverted_Index -Iwl2/boolean_operations tests/wl2/PostingsOperationsBenchmark.cpp wl2/boolean_operations/PostingsOperations.cpp wl2/Inverted_Index/Posting.cpp -o build/skip_offset_benchmark
+././build/skip_offset_benchmark
+Union benchmark: plain vs sqrt vs fixed offsets vs exponential
+Fixed offsets: 3, 10, 25, 31, 50, 100, 141, 223, 316, 447
+Each strategy validates output; timings are medians of 7 samples with rotated run order.
+
+Case: Random sparse lists
+A=7954, B=7927, union=15257, samples=7, iterations/sample=30
+  Plain union             454.68 us/op  (0.970x of fastest)
+  Sqrt skips (A=89, B=89) 448.07 us/op  (0.984x of fastest)
+  Fixed 3                 447.60 us/op  (0.985x of fastest)
+  Fixed 10                450.23 us/op  (0.979x of fastest)
+  Fixed 25                467.13 us/op  (0.944x of fastest)
+  Fixed 31                447.15 us/op  (0.986x of fastest)
+  Fixed 50                450.59 us/op  (0.978x of fastest)
+  Fixed 100               448.54 us/op  (0.983x of fastest)
+  Fixed 141               449.09 us/op  (0.982x of fastest)
+  Fixed 223               446.58 us/op  (0.987x of fastest)
+  Fixed 316               449.78 us/op  (0.980x of fastest)
+  Fixed 447               463.74 us/op  (0.951x of fastest)
+  Exponential             440.90 us/op  (1.000x of fastest)  <-- fastest measured
+
+Case: Identical lists / dense overlap
+A=7954, B=7954, union=7954, samples=7, iterations/sample=30
+  Plain union             194.61 us/op  (0.955x of fastest)
+  Sqrt skips (A=89, B=89) 189.52 us/op  (0.981x of fastest)
+  Fixed 3                 186.00 us/op  (0.999x of fastest)
+  Fixed 10                186.82 us/op  (0.995x of fastest)
+  Fixed 25                190.53 us/op  (0.975x of fastest)
+  Fixed 31                186.02 us/op  (0.999x of fastest)
+  Fixed 50                186.01 us/op  (0.999x of fastest)
+  Fixed 100               186.62 us/op  (0.996x of fastest)
+  Fixed 141               185.86 us/op  (1.000x of fastest)  <-- fastest measured
+  Fixed 223               186.49 us/op  (0.997x of fastest)
+  Fixed 316               186.59 us/op  (0.996x of fastest)
+  Fixed 447               191.14 us/op  (0.972x of fastest)
+  Exponential             188.08 us/op  (0.988x of fastest)
+
+Case: Disjoint separated ranges
+A=50000, B=50000, union=100000, samples=7, iterations/sample=5
+  Plain union             2545.28 us/op  (0.845x of fastest)
+  Sqrt skips (A=223, B=223)2177.72 us/op  (0.988x of fastest)
+  Fixed 3                 2295.01 us/op  (0.937x of fastest)
+  Fixed 10                2175.46 us/op  (0.989x of fastest)
+  Fixed 25                2167.56 us/op  (0.992x of fastest)
+  Fixed 31                2333.78 us/op  (0.922x of fastest)
+  Fixed 50                2150.80 us/op  (1.000x of fastest)  <-- fastest measured
+  Fixed 100               2188.69 us/op  (0.983x of fastest)
+  Fixed 141               2191.30 us/op  (0.982x of fastest)
+  Fixed 223               2174.72 us/op  (0.989x of fastest)
+  Fixed 316               2187.64 us/op  (0.983x of fastest)
+  Fixed 447               2235.87 us/op  (0.962x of fastest)
+  Exponential             2169.15 us/op  (0.992x of fastest)
+
+Case: Tiny versus huge
+A=200000, B=10, union=200000, samples=7, iterations/sample=3
+  Plain union             5377.24 us/op  (0.809x of fastest)
+  Sqrt skips (A=447, B=3) 4384.01 us/op  (0.992x of fastest)
+  Fixed 3                 4653.52 us/op  (0.935x of fastest)
+  Fixed 10                4480.58 us/op  (0.971x of fastest)
+  Fixed 25                4445.01 us/op  (0.979x of fastest)
+  Fixed 31                4443.31 us/op  (0.979x of fastest)
+  Fixed 50                4408.40 us/op  (0.987x of fastest)
+  Fixed 100               4411.12 us/op  (0.986x of fastest)
+  Fixed 141               4389.13 us/op  (0.991x of fastest)
+  Fixed 223               4350.63 us/op  (1.000x of fastest)  <-- fastest measured
+  Fixed 316               4355.21 us/op  (0.999x of fastest)
+  Fixed 447               4365.54 us/op  (0.997x of fastest)
+  Exponential             4375.53 us/op  (0.994x of fastest)
+
+Case: Clustered non-overlapping runs
+A=100000, B=100000, union=200000, samples=7, iterations/sample=3
+  Plain union             5400.96 us/op  (0.807x of fastest)
+  Sqrt skips (A=316, B=316)4369.09 us/op  (0.997x of fastest)
+  Fixed 3                 4696.95 us/op  (0.928x of fastest)
+  Fixed 10                4497.17 us/op  (0.969x of fastest)
+  Fixed 25                4442.61 us/op  (0.981x of fastest)
+  Fixed 31                4413.93 us/op  (0.987x of fastest)
+  Fixed 50                4357.77 us/op  (1.000x of fastest)  <-- fastest measured
+  Fixed 100               4391.97 us/op  (0.992x of fastest)
+  Fixed 141               4387.86 us/op  (0.993x of fastest)
+  Fixed 223               4421.67 us/op  (0.986x of fastest)
+  Fixed 316               4400.37 us/op  (0.990x of fastest)
+  Fixed 447               4404.38 us/op  (0.989x of fastest)
+  Exponential             4393.49 us/op  (0.992x of fastest)
+
+Case: Sqrt-scale alternating runs (n=10k, block=400)
+A=10000, B=10000, union=20000, samples=7, iterations/sample=25
+  Plain union             499.94 us/op  (0.844x of fastest)
+  Sqrt skips (A=100, B=100)437.79 us/op  (0.964x of fastest)
+  Fixed 3                 436.71 us/op  (0.966x of fastest)
+  Fixed 10                424.69 us/op  (0.994x of fastest)
+  Fixed 25                426.69 us/op  (0.989x of fastest)
+  Fixed 31                427.98 us/op  (0.986x of fastest)
+  Fixed 50                429.15 us/op  (0.983x of fastest)
+  Fixed 100               438.25 us/op  (0.963x of fastest)
+  Fixed 141               446.49 us/op  (0.945x of fastest)
+  Fixed 223               501.98 us/op  (0.841x of fastest)
+  Fixed 316               502.77 us/op  (0.839x of fastest)
+  Fixed 447               508.31 us/op  (0.830x of fastest)
+  Exponential             422.03 us/op  (1.000x of fastest)  <-- fastest measured
+
+Case: Interleaved disjoint IDs
+A=50000, B=50000, union=100000, samples=7, iterations/sample=5
+  Plain union             2773.18 us/op  (0.977x of fastest)
+  Sqrt skips (A=223, B=223)2710.45 us/op  (1.000x of fastest)  <-- fastest measured
+  Fixed 3                 2754.69 us/op  (0.984x of fastest)
+  Fixed 10                2713.91 us/op  (0.999x of fastest)
+  Fixed 25                2751.26 us/op  (0.985x of fastest)
+  Fixed 31                2731.03 us/op  (0.992x of fastest)
+  Fixed 50                2735.58 us/op  (0.991x of fastest)
+  Fixed 100               2793.84 us/op  (0.970x of fastest)
+  Fixed 141               2793.38 us/op  (0.970x of fastest)
+  Fixed 223               2920.46 us/op  (0.928x of fastest)
+  Fixed 316               2726.04 us/op  (0.994x of fastest)
+  Fixed 447               2794.02 us/op  (0.970x of fastest)
+  Exponential             2736.28 us/op  (0.991x of fastest)
+
+Case: Dense partial overlap
+A=20000, B=20000, union=30000, samples=7, iterations/sample=16
+  Plain union             719.77 us/op  (0.914x of fastest)
+  Sqrt skips (A=141, B=141)657.95 us/op  (1.000x of fastest)  <-- fastest measured
+  Fixed 3                 670.44 us/op  (0.981x of fastest)
+  Fixed 10                662.50 us/op  (0.993x of fastest)
+  Fixed 25                659.73 us/op  (0.997x of fastest)
+  Fixed 31                666.71 us/op  (0.987x of fastest)
+  Fixed 50                667.20 us/op  (0.986x of fastest)
+  Fixed 100               665.60 us/op  (0.989x of fastest)
+  Fixed 141               668.33 us/op  (0.984x of fastest)
+  Fixed 223               666.82 us/op  (0.987x of fastest)
+  Fixed 316               663.39 us/op  (0.992x of fastest)
+  Fixed 447               664.45 us/op  (0.990x of fastest)
+  Exponential             661.82 us/op  (0.994x of fastest)
+
+Case: Sparse right list
+A=100000, B=1000, union=100000, samples=7, iterations/sample=5
+  Plain union             2530.34 us/op  (0.883x of fastest)
+  Sqrt skips (A=316, B=31)2544.65 us/op  (0.878x of fastest)
+  Fixed 3                 2248.47 us/op  (0.993x of fastest)
+  Fixed 10                2317.22 us/op  (0.964x of fastest)
+  Fixed 25                2338.95 us/op  (0.955x of fastest)
+  Fixed 31                2269.47 us/op  (0.984x of fastest)
+  Fixed 50                2591.36 us/op  (0.862x of fastest)
+  Fixed 100               2531.50 us/op  (0.882x of fastest)
+  Fixed 141               2552.67 us/op  (0.875x of fastest)
+  Fixed 223               2548.73 us/op  (0.876x of fastest)
+  Fixed 316               2515.67 us/op  (0.888x of fastest)
+  Fixed 447               2536.42 us/op  (0.880x of fastest)
+  Exponential             2233.15 us/op  (1.000x of fastest)  <-- fastest measured
+
+Case: Empty right list
+A=7954, B=0, union=7954, samples=7, iterations/sample=30
+  Plain union             180.51 us/op  (0.991x of fastest)
+  Sqrt skips (A=89, B=1)  181.69 us/op  (0.985x of fastest)
+  Fixed 3                 180.06 us/op  (0.994x of fastest)
+  Fixed 10                179.88 us/op  (0.995x of fastest)
+  Fixed 25                179.58 us/op  (0.997x of fastest)
+  Fixed 31                180.00 us/op  (0.994x of fastest)
+  Fixed 50                179.34 us/op  (0.998x of fastest)
+  Fixed 100               180.77 us/op  (0.990x of fastest)
+  Fixed 141               179.77 us/op  (0.996x of fastest)
+  Fixed 223               179.78 us/op  (0.996x of fastest)
+  Fixed 316               179.87 us/op  (0.995x of fastest)
+  Fixed 447               178.98 us/op  (1.000x of fastest)  <-- fastest measured
+  Exponential             179.72 us/op  (0.996x of fastest)
+
+##### 4. INDEX BUILD TIME + PEAK MEMORY vs CORPUS SIZE (5 runs each)
+docs | load+index time (s) [n mean min p95 max] | peak RSS (MB) [mean]
+100 | n=5 mean=1.638 min=1.600 p95=1.680 max=1.680 | 133
+250 | n=5 mean=2.574 min=2.300 p95=2.770 max=2.770 | 165
+500 | n=5 mean=3.686 min=3.620 p95=3.740 max=3.740 | 240
+corpus file size: 40.0 MB
+
+##### 5. QUERY LATENCY via CLI ('Query time' ms, 30 repeats per query, warm index, data/crawler.json)
+NOTE: CLI time includes resolve_query + fetching snippets for ALL hits + scoring/sorting.
+single     search                 hits=320  n=30 mean=1.453 min=1.303 p95=1.736 max=1.763
+and        data AND search        hits=159  n=30 mean=1.200 min=1.058 p95=1.375 max=1.441
+or         python OR linux        hits=139  n=30 mean=0.993 min=0.835 p95=1.179 max=1.184
+not        NOT search             hits=178  n=30 mean=0.264 min=0.208 p95=0.374 max=0.376
+phrase     "search engine"        hits=7    n=30 mean=0.186 min=0.131 p95=0.270 max=0.277
+prefix     pyth*                  hits=95   n=30 mean=1.575 min=1.421 p95=1.869 max=1.887
+suffix     *tion                  hits=471  n=30 mean=33.277 min=32.239 p95=34.583 max=34.587
+infix      ser*er                 hits=93   n=30 mean=2.209 min=1.772 p95=2.545 max=2.820

@@ -13,6 +13,8 @@ public:
     void displayAll() const;
     bool search(const string& word) const;
     PostingList* get(const string& word);
+    // Positional lookup includes stopwords; regular term lookup intentionally does not.
+    PostingList* get_positional(const string& word);
 };
 
 #endif

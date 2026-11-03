@@ -1,0 +1,17 @@
+g++ -std=c++17 -Wall -Wextra -O2 -DSMALL_BENCHMARK -Iwl2/Inverted_Index -Iwl2/boolean_operations tests/wl2/UnionSkipComparisonDemo.cpp wl2/boolean_operations/PostingsOperations.cpp wl2/Inverted_Index/Posting.cpp -o build/union_skip_small
+././build/union_skip_small
+Tiny list vs huge list (A=20000, B=10, union=20000, outputs identical)
+  PostingsOperations::union_:             892.12 us
+  PostingsOperations::union_with_skips:   458.09 us
+  speed ratio (plain / skips):             1.95x
+
+Clustered runs, no overlap (A=2000, B=2000, union=4000, outputs identical)
+  PostingsOperations::union_:             89.50 us
+  PostingsOperations::union_with_skips:   84.71 us
+  speed ratio (plain / skips):             1.06x
+
+Interleaved (worst case for skips) (A=5000, B=5000, union=10000, outputs identical)
+  PostingsOperations::union_:             245.83 us
+  PostingsOperations::union_with_skips:   243.17 us
+  speed ratio (plain / skips):             1.01x
+

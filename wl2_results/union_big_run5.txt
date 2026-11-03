@@ -1,0 +1,54 @@
+././build/union_skip_big
+Running Union vs Skip-Union Benchmark (C++17 -O2, 7 samples x 100 iterations)
+
+=================================================================
+Test:    Random sparse lists
+Purpose: General performance
+Sizes:   |A| = 7954, |B| = 7927, |A U B| = 15257
+  union_ (ordinary baseline):    441.82 us/op (median of 7 runs)
+  union_with_skips:              447.83 us/op (median of 7 runs)
+  Speedup (T_ordinary / T_skip): 0.9866x  --> Similar performance (~equal)
+=================================================================
+Test:    Identical lists
+Purpose: High overlap
+Sizes:   |A| = 7954, |B| = 7954, |A U B| = 7954
+  union_ (ordinary baseline):    182.77 us/op (median of 7 runs)
+  union_with_skips:              186.91 us/op (median of 7 runs)
+  Speedup (T_ordinary / T_skip): 0.9778x  --> Similar performance (~equal)
+=================================================================
+Test:    Disjoint lists
+Purpose: No overlap
+Sizes:   |A| = 50000, |B| = 50000, |A U B| = 100000
+  union_ (ordinary baseline):   2641.67 us/op (median of 7 runs)
+  union_with_skips:             2218.65 us/op (median of 7 runs)
+  Speedup (T_ordinary / T_skip): 1.1907x  --> Skip implementation is FASTER
+=================================================================
+Test:    Tiny vs huge lists
+Purpose: Highly unequal sizes
+Sizes:   |A| = 200000, |B| = 10, |A U B| = 200000
+  union_ (ordinary baseline):   5358.33 us/op (median of 7 runs)
+  union_with_skips:             4368.66 us/op (median of 7 runs)
+  Speedup (T_ordinary / T_skip): 1.2265x  --> Skip implementation is FASTER
+=================================================================
+Test:    Clustered runs
+Purpose: Long stretches suitable for skipping
+Sizes:   |A| = 100000, |B| = 100000, |A U B| = 200000
+  union_ (ordinary baseline):   5294.14 us/op (median of 7 runs)
+  union_with_skips:             4364.04 us/op (median of 7 runs)
+  Speedup (T_ordinary / T_skip): 1.2131x  --> Skip implementation is FASTER
+=================================================================
+Test:    Interleaved lists
+Purpose: Dense alternating IDs; baseline fallback
+Sizes:   |A| = 50000, |B| = 50000, |A U B| = 100000
+  union_ (ordinary baseline):   2658.37 us/op (median of 7 runs)
+  union_with_skips:             2601.88 us/op (median of 7 runs)
+  Speedup (T_ordinary / T_skip): 1.0217x  --> Similar performance (~equal)
+=================================================================
+Test:    Empty list
+Purpose: Boundary case
+Sizes:   |A| = 7954, |B| = 0, |A U B| = 7954
+  union_ (ordinary baseline):    179.97 us/op (median of 7 runs)
+  union_with_skips:              181.47 us/op (median of 7 runs)
+  Speedup (T_ordinary / T_skip): 0.9917x  --> Similar performance (~equal)
+=================================================================
+Benchmark complete.

@@ -25,10 +25,10 @@ std::string lemma = wl2::lemmatize("running"); // "run"
 bool ignored = wl2::is_stopword("the");         // true
 ```
 
-Use `process_text` when converting document text or a query/phrase into index
-terms. Use `lemmatize` for a single non-stopword lookup. Wildcard patterns are
-kept intact by `process_text`; do not lemmatize their prefix or suffix
-independently.
+Use `process_text` when converting document text or an ordinary query into
+search terms. Use `lemmatize` for a single non-stopword lookup. Wildcard
+patterns are kept intact by `process_text`; do not lemmatize their prefix or
+suffix independently.
 
 ## Worklet 2 integration
 
@@ -37,12 +37,12 @@ relative to their source files. When compiling either component, also compile
 `lib/src/libfreeling/text_processing.cc`. The `wl2/Makefile` already adds this
 source to the CLI, bridge test, and Python binding builds.
 
-For a new index path, process the document text once, then index each returned
-term. For query handling, process ordinary terms before lookup; retain Boolean
-operators and wildcard syntax in the parser. Phrase text should also go through
-`process_text`, and document phrase text should use the same transformation.
-This means stopwords do not occupy positions in phrase matching, consistent
-with their omission from the index.
+For a new index path, process ordinary terms with `process_text`. The positional
+index also stores stopwords so quoted phrases can match their exact word order;
+ordinary term lookup continues to ignore stopwords. Phrase queries use
+tokenization plus lemmatization for non-stopwords and check consecutive
+positions. Sentence boundaries reserve a position so phrases cannot cross
+sentences.
 Boolean operators are reserved in uppercase (`AND`, `OR`, `NOT`); lowercase
 forms are treated as stopwords. A single `*` can match an infix wildcard term,
 such as `f*x`.
