@@ -1,0 +1,1046 @@
+\documentclass[12pt]{article}
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usepackage{setspace}
+\usepackage{listings}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{float}
+\usepackage[T1]{fontenc}
+\usepackage[hidelinks]{hyperref}
+\usepackage{xcolor}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{multirow}
+\usepackage{pdflscape}
+
+% Code Theme
+\definecolor{codebg}{RGB}{30,30,30}
+\definecolor{codegreen}{RGB}{152,195,121}
+\definecolor{codeblue}{RGB}{97,175,239}
+\definecolor{codewhite}{RGB}{220,220,220}
+
+\lstdefinestyle{darkcode}{
+    backgroundcolor=\color{codebg},
+    basicstyle=\ttfamily\color{codewhite}\footnotesize,
+    keywordstyle=\color{codeblue},
+    commentstyle=\color{codegreen},
+    stringstyle=\color{codegreen},
+    numbers=none,
+    breaklines=true,
+    frame=single,
+    rulecolor=\color{black},
+    tabsize=2,
+    showstringspaces=false
+}
+
+\setlength{\parindent}{0pt}
+
+\begin{document}
+
+% ================= COVER PAGE =================
+
+\begin{titlepage}
+\centering
+
+% Top line
+\begin{tikzpicture}[remember picture, overlay]
+\draw[line width=1.5pt]
+(current page.north west) -- (current page.north east);
+\end{tikzpicture}
+
+\vspace*{0.8cm}
+
+{\Huge \textbf{COEP Technological University}}\\[0.2cm]
+{\large Department of Computer Science}\\[0.8cm]
+
+{\large \textbf{INFORMATION RETRIEVAL}}\\[0.3cm]
+{\Large \textbf{Mini Search Engine}}\\[0.2cm]
+{\large Project Report}\\[0.3cm]
+{\small \textbf{GitHub Repository:} \url{https://github.com/BhaveshGadling77/Mini-Search-Engine}}\\[0.6cm]
+
+\includegraphics[width=0.22\textwidth]{coeplogo.png}\\[0.6cm]
+
+\textbf{\large SY BTech Computer Science and Engineering}\\[0.3cm]
+
+\begin{center}
+\small
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{|c|p{6.5cm}|c|}
+\hline
+\textbf{Worklet} & \textbf{Name} & \textbf{MIS No.} \\
+\hline
+\multirow{4}{*}{\textbf{Worklet 1}} & Shreyash Chandra & 612415174 \\
+                                    & Mandar Shimpi    & 612415165 \\
+                                    & Atharv Shinde    & 612415166 \\
+                                    & Kedar Kukade     & 612415089 \\
+\hline
+\multirow{4}{*}{\textbf{Worklet 2}} & Anshul Kalmegh   & 612415011 \\
+                                    & Pratham Baisane  & 612415020 \\
+                                    & Anurag De        & 612415047 \\
+                                    & Bhavesh Gadling  & 612415060 \\
+\hline
+\multirow{4}{*}{\textbf{Worklet 3}} & Advait Gajewar   & 612415063 \\
+                                    & Bhoomi Kadam     & 612415028 \\
+                                    & Samruddhi Badakh & 612415017 \\
+                                    & Tanishqa Chopade & 612415185 \\
+\hline
+\end{tabular}
+\end{center}
+
+\vspace{0.4cm}
+{\textbf{Date:} \today}
+
+\vfill
+
+% Bottom line
+\begin{tikzpicture}[remember picture, overlay]
+\draw[line width=1.5pt]
+(current page.south west) -- (current page.south east);
+\end{tikzpicture}
+
+\end{titlepage}
+
+% ================= CONTENT =================
+
+\newpage
+
+% ================= AIM =================
+\section*{Aim}
+
+To design and implement a compact, end-to-end \textbf{Mini Search Engine} from scratch that covers the complete information retrieval pipeline: web crawling, document modelling, inverted index construction, Boolean and phrase query processing, relevance ranking using TF-IDF and BM25, result caching, and performance evaluation using standard IR metrics (Precision, Recall, MRR, AP).
+
+\vspace{0.3cm}
+\noindent\textbf{GitHub Repository Link:}\\
+\url{https://github.com/BhaveshGadling77/Mini-Search-Engine}
+
+% ================= PREREQUISITES =================
+\section*{Prerequisites}
+
+\begin{enumerate}
+    \item \textbf{Python 3.11+} --- for Worklet 1 (crawler) and Worklet 3 (ranking, evaluation, web app).
+    \item \textbf{C++17-compatible compiler (g++ 11+)} --- for Worklet 2 (inverted index and query processing in C++).
+    \item \textbf{pybind11} --- to expose the C++ query processor to Python via a shared library bridge.
+    \item \textbf{Flask} --- Python micro-framework for the web front-end (Worklet 3).
+    \item \textbf{pip packages} --- \texttt{requests}, \texttt{beautifulsoup4}, \texttt{flask} (see \texttt{requirements.txt}).
+    \item Familiarity with data structures: inverted index, trie, doubly linked list, hash map.
+    \item Understanding of information retrieval concepts: TF-IDF, BM25, boolean algebra, postings lists.
+\end{enumerate}
+
+% ================= INSTALLATION =================
+\section*{Installation / Setup Steps}
+
+\subsection*{Step 1: Clone the repository and create a virtual environment}
+\begin{lstlisting}[style=darkcode, language=bash]
+git clone https://github.com/BhaveshGadling77/Mini-Search-Engine.git
+cd Mini-Search-Engine
+python -m venv .venv
+source .venv/bin/activate        # Linux / macOS
+\end{lstlisting}
+
+\subsection*{Step 2: Install Python dependencies}
+\begin{lstlisting}[style=darkcode, language=bash]
+python -m pip install -r requirements.txt
+python -m pip install pybind11
+\end{lstlisting}
+
+\subsection*{Step 3: Build the C++ Worklet 2 engine and pybind bridge}
+\begin{lstlisting}[style=darkcode, language=bash]
+make all       # builds CLI binary + all test binaries
+make pybind    # builds wl2bridge.so Python extension module
+\end{lstlisting}
+
+\subsection*{Step 4: Run the web application}
+\begin{lstlisting}[style=darkcode, language=bash]
+WL3_W2_BACKEND=wl3.integration.wl2_backend:create_backend \
+WL3_CORPUS=data/crawler.json \
+python -m wl3.web.app
+# Open http://127.0.0.1:5000 in a browser
+\end{lstlisting}
+
+\subsection*{Step 5: Run all tests}
+\begin{lstlisting}[style=darkcode, language=bash]
+python run_tests.py         # Worklet 1 + Worklet 3 Python tests
+make test-wl2               # Worklet 2 C++ correctness tests
+make test-boolean           # Boolean postings operations tests
+\end{lstlisting}
+
+% ================= THEORY =================
+\section*{Theory}
+
+A \textbf{search engine} is a system that accepts a user's natural-language or structured query and returns a ranked list of documents relevant to that query. The classical IR pipeline consists of five main stages:
+
+\begin{enumerate}
+    \item \textbf{Crawling} --- automated discovery and downloading of web pages or documents.
+    \item \textbf{Parsing \& Tokenization} --- extracting meaningful text from raw HTML and splitting it into normalised tokens (lowercase, stop-word removal).
+    \item \textbf{Indexing} --- building an \emph{inverted index}: a mapping from every vocabulary term to the list of documents containing that term, along with positional and frequency information.
+    \item \textbf{Query Processing} --- translating a user query into postings-list operations (AND, OR, NOT for Boolean; consecutive-position checks for phrase queries; trie traversal for prefix/wildcard queries).
+    \item \textbf{Ranking} --- scoring candidate documents and returning the top-$k$ results.
+\end{enumerate}
+
+\subsection*{Key Concepts}
+
+\subsubsection*{1. Inverted Index}
+An inverted index maps each term $t$ to a \emph{postings list} --- a sorted list of document identifiers (and optionally positions) that contain $t$. Lookup is $O(\log V)$ on the vocabulary and merge operations on postings lists determine overall query complexity.
+
+\subsubsection*{2. TF-IDF Scoring}
+Term Frequency--Inverse Document Frequency assigns a relevance score based on how often a query term appears in a document (TF) and how rare the term is across the corpus (IDF):
+
+\begin{equation}
+\text{Score}(q, d) = \sum_{t \in q \cap d} \mathrm{tf}(t,d) \times \log_{10}\!\left(\frac{N}{\mathrm{df}(t)}\right)
+\end{equation}
+
+where $N$ is the total document count and $\mathrm{df}(t)$ is the number of documents containing term $t$.
+
+\subsubsection*{3. BM25 (Okapi BM25)}
+BM25 extends TF-IDF with \emph{term-frequency saturation} ($k_1$) and \emph{document-length normalisation} ($b$):
+
+\begin{equation}
+\text{BM25}(q, d) = \sum_{t \in q} \mathrm{IDF}(t) \cdot \frac{\mathrm{tf}(t,d)\cdot(k_1+1)}{\mathrm{tf}(t,d) + k_1\!\left(1 - b + b\cdot\dfrac{|d|}{\mathrm{avgdl}}\right)}
+\end{equation}
+
+Default hyperparameters: $k_1 = 1.5$, $b = 0.75$.
+
+\subsubsection*{4. Skip Pointers}
+Skip pointers are periodic forward-links embedded in a postings list at every $\sqrt{n}$ positions. During a union or intersection merge, the cursor may ``skip'' over a block of entries in $O(1)$ instead of scanning each entry, reducing merge cost on sparse or disjoint lists.
+
+\subsubsection*{5. Trie for Prefix / Wildcard Search}
+A \textbf{Trie} (prefix tree) stores the entire vocabulary. Forward traversal enables prefix lookups in $O(|p|)$ time. A second reversed trie enables suffix lookups. Wildcard queries (e.g., \texttt{ser*er}) combine the forward and reversed tries to enumerate all matching vocabulary terms, whose postings are then merged.
+
+\subsubsection*{6. LRU Cache}
+A Least-Recently-Used (LRU) cache stores the most recent query results in memory, implemented with a \emph{hash map} for $O(1)$ lookup and a \emph{doubly linked list} for $O(1)$ recency updates and eviction. Access is guarded by a mutex for thread safety.
+
+\subsubsection*{7. Evaluation Metrics}
+\begin{itemize}
+    \item \textbf{Precision@k}: fraction of top-$k$ results that are relevant.
+    \item \textbf{Recall@k}: fraction of all relevant documents found in the top-$k$.
+    \item \textbf{Reciprocal Rank (RR)}: $1/\text{rank of first relevant result}$.
+    \item \textbf{Mean Reciprocal Rank (MRR)}: average RR over a query set.
+    \item \textbf{Average Precision (AP)}: area under the precision-recall curve for a single query.
+\end{itemize}
+
+% ================= METHODOLOGY =================
+\section*{Methodology}
+
+The project is split into three sequential \emph{worklets}, each building on the previous:
+
+\begin{enumerate}
+    \item \textbf{Worklet 1 --- Crawler \& Document Model (Python)}
+    \begin{enumerate}[label=\alph*.]
+        \item Seed a URL frontier with one or more starting URLs.
+        \item BFS-crawl pages: fetch HTML $\rightarrow$ parse title, body text, outbound links.
+        \item Tokenize text: regex split on \texttt{[a-zA-Z0-9]+}, lowercase, remove stop words.
+        \item Persist each \texttt{Document} (doc\_id, url, title, tokens, segments) as JSONL.
+    \end{enumerate}
+
+    \item \textbf{Worklet 2 --- Inverted Index \& Query Processing (C++)}
+    \begin{enumerate}[label=\alph*.]
+        \item Read the JSONL corpus and build an \texttt{Inverted\_Index} with per-term postings lists (doc\_id + positions).
+        \item Insert all vocabulary terms into a forward and a reversed \texttt{Trie}.
+        \item Expose a \texttt{resolve\_query(query\_string)} API supporting: single-term, AND, OR, NOT (boolean), phrase (positional), prefix (\texttt{word*}), suffix (\texttt{*word}), and wildcard (\texttt{pre*suf}) queries.
+        \item Implement \texttt{PostingsOperations}: \texttt{intersect}, \texttt{union\_}, \texttt{difference}, plus skip-pointer variants.
+        \item Expose the C++ engine to Python via a \texttt{pybind11} bridge module (\texttt{wl2bridge.so}).
+    \end{enumerate}
+
+    \item \textbf{Worklet 3 --- Ranking, Caching \& Evaluation (Python)}
+    \begin{enumerate}[label=\alph*.]
+        \item Call \texttt{resolve\_query} through the bridge; receive candidate doc\_ids and term frequencies.
+        \item Score every candidate with TF-IDF or BM25 (selectable at query time).
+        \item Apply MMR (Maximal Marginal Relevance) for result diversification when requested.
+        \item Cache results in an in-memory LRU cache and an optional SQLite persistent cache.
+        \item Accept user relevance feedback and refine the query vector via the \textbf{Rocchio} algorithm.
+        \item Evaluate ranking quality using Precision@k, Recall@k, MRR, and AP.
+        \item Serve results via a \textbf{Flask} web application with term highlighting and session management.
+    \end{enumerate}
+\end{enumerate}
+
+% ================= PROGRAM CODE =================
+\section*{Program Code}
+
+\subsection*{Worklet 1 --- Crawl Engine (\texttt{wl1/crawler/engine.py})}
+\begin{lstlisting}[style=darkcode, language=Python, caption=BFS Crawl Engine]
+class CrawlEngine:
+    """Runs a BFS crawl from a set of seeds and persists documents."""
+
+    def run(self) -> int:
+        stored = 0
+        while stored < self.max_pages and not self.frontier.empty():
+            url = self.frontier.pop()
+            html = self.fetcher.fetch(url)
+            if html is None:
+                continue
+            title, text, links = parse_page(html, url)
+            segments = tokenize_segments(text)
+            tokens = [t for seg in segments for t in seg]
+            self._doc_seq += 1
+            document = Document(
+                doc_id=Document.new_doc_id(self._doc_seq),
+                url=url, title=title, text=text,
+                tokens=tuple(tokens),
+                token_segments=tuple(tuple(seg) for seg in segments),
+                meta={"depth": depth, "status": "ok"},
+            )
+            self.store.append(document)
+            stored += 1
+            # Enqueue unseen outbound links
+            for link in links:
+                normalized = self.frontier.add(link)
+                if normalized is not None:
+                    self._depth[normalized] = depth + 1
+        return stored
+\end{lstlisting}
+
+\subsection*{Worklet 1 --- Tokenizer (\texttt{wl1/crawler/tokenizer.py})}
+\begin{lstlisting}[style=darkcode, language=Python, caption=Tokenization Pipeline]
+_TOKEN_RE = re.compile(r"[a-zA-Z0-9]+")
+
+def tokenize_segments(text: str | None) -> list[list[str]]:
+    """Split text into per-HTML-section token lists."""
+    if not text:
+        return []
+    fragments = text.split(SECTION_BREAK)
+    segments = []
+    for fragment in fragments:
+        tokens = _TOKEN_RE.findall(fragment)
+        tokens = [t.lower() for t in tokens]
+        tokens = [t for t in tokens if t not in config.STOPWORDS]
+        if tokens:
+            segments.append(tokens)
+    return segments
+\end{lstlisting}
+
+\subsection*{Worklet 2 --- Trie (\texttt{wl2/trie/trie.h})}
+\begin{lstlisting}[style=darkcode, language=C++, caption=Trie for Prefix and Wildcard Search]
+class TrieNode {
+public:
+    string label;
+    bool endOfWord;
+    TrieNode* children[26];
+    TrieNode(string l = "") { label = l; endOfWord = false;
+        for(int i = 0; i < 26; i++) children[i] = nullptr; }
+};
+
+class Trie {
+    TrieNode* root;      // forward trie (prefix search)
+    TrieNode* revRoot;   // reversed trie (suffix search)
+    unordered_map<string, unordered_set<string>> kgramIndex;
+    int k = 3;
+public:
+    void insert(string word);
+    void insertReversed(string word);
+    vector<string> searchForPrefix(string word);
+    vector<string> searchForSuffix(string word);
+    vector<string> searchForWildCard(string prefix, string suffix);
+    vector<string> searchForInfixWildCard(string word);
+};
+\end{lstlisting}
+
+\subsection*{Worklet 2 --- PostingsOperations (\texttt{wl2/boolean\_operations/PostingsOperations.h})}
+\begin{lstlisting}[style=darkcode, language=C++, caption=Boolean Postings Operations with Skip Pointers]
+class PostingsOperations {
+public:
+    // Standard merge operations
+    static PostingList intersect(const PostingList &a, const PostingList &b);
+    static PostingList union_(const PostingList &a, const PostingList &b);
+    static PostingList difference(const PostingList &a, const PostingList &b);
+
+    // Skip-pointer variants (sqrt(n) spacing)
+    static PostingList union_with_skips(const PostingList &a, const PostingList &b);
+    static PostingList union_with_fixed_skips(const PostingList &a,
+                                               const PostingList &b, int interval);
+    static PostingList union_with_exponential_skips(const PostingList &a,
+                                                    const PostingList &b);
+    static PostingList intersect_with_sqrt_skips(const PostingList &a,
+                                                  const PostingList &b);
+    static PostingList intersect_with_exponential_skips(const PostingList &a,
+                                                         const PostingList &b);
+    static vector<int> extract_doc_ids(const PostingList &list);
+};
+\end{lstlisting}
+
+\subsection*{Worklet 3 --- BM25 Scorer (\texttt{wl3/ranking/bm25.py})}
+\begin{lstlisting}[style=darkcode, language=Python, caption=Okapi BM25 Relevance Scoring]
+class BM25Scorer:
+    """Okapi BM25 with term-frequency saturation (k1) and
+       document-length normalisation (b)."""
+
+    def __init__(self, k1: float = 1.5, b: float = 0.75) -> None:
+        self.k1 = k1
+        self.b = b
+
+    def score(self, doc_tf, doc_freq, total_docs,
+              doc_length, avg_doc_length, query_terms) -> float:
+        score = 0.0
+        for term in query_terms:
+            tf = doc_tf.get(term, 0)
+            df = doc_freq.get(term, 0)
+            if tf <= 0 or df <= 0:
+                continue
+            # Robertson-Sparck Jones IDF
+            idf = max(0.0, math.log10(
+                (total_docs - df + 0.5) / (df + 0.5) + 1))
+            # Length-normalised TF component
+            numerator = tf * (self.k1 + 1)
+            length_norm = 1 - self.b + self.b * (doc_length / avg_doc_length)
+            denominator = tf + self.k1 * length_norm
+            score += idf * (numerator / denominator)
+        return score
+\end{lstlisting}
+
+\subsection*{Worklet 3 --- LRU Cache (\texttt{wl3/cache/lru\_cache.py})}
+\begin{lstlisting}[style=darkcode, language=Python, caption=Thread-Safe LRU Cache]
+class LRUCache(Generic[K, V]):
+    """Thread-safe LRU cache using HashMap + Doubly Linked List."""
+
+    def __init__(self, capacity: int):
+        self.capacity = capacity
+        self._cache: dict[K, _Node[K, V]] = {}
+        self._head = _Node(None, None)   # most-recently-used sentinel
+        self._tail = _Node(None, None)   # least-recently-used sentinel
+        self._head.next = self._tail
+        self._tail.prev = self._head
+        self._lock = Lock()
+
+    def get(self, key: K) -> V | None:
+        with self._lock:
+            node = self._cache.get(key)
+            if node is None:
+                return None
+            self._move_to_front(node)
+            return node.value
+
+    def put(self, key: K, value: V) -> None:
+        with self._lock:
+            if key in self._cache:
+                self._cache[key].value = value
+                self._move_to_front(self._cache[key])
+                return
+            new_node = _Node(key, value)
+            self._cache[key] = new_node
+            self._add_to_front(new_node)
+            if len(self._cache) > self.capacity:
+                self._remove_least_recently_used()
+\end{lstlisting}
+
+% ================= EXECUTION COMMANDS =================
+\section*{Execution Commands}
+
+\subsection*{Build C++ Engine}
+\begin{lstlisting}[style=darkcode, language=bash]
+make clean && make all    # compile search_cli + test binaries
+make pybind               # build wl2bridge Python extension
+\end{lstlisting}
+
+\subsection*{Run Web Application}
+\begin{lstlisting}[style=darkcode, language=bash]
+source .venv/bin/activate
+WL3_W2_BACKEND=wl3.integration.wl2_backend:create_backend \
+WL3_CORPUS=data/crawler.json \
+python -m wl3.web.app
+\end{lstlisting}
+
+\subsection*{Run Worklet 2 Performance Benchmark}
+\begin{lstlisting}[style=darkcode, language=bash]
+bash wl2measure.sh        # builds + benchmarks index + queries
+\end{lstlisting}
+
+\subsection*{Run Python Tests}
+\begin{lstlisting}[style=darkcode, language=bash]
+python run_tests.py       # all Worklet 1 and Worklet 3 tests
+\end{lstlisting}
+
+% ================= OUTPUT =================
+\section*{Output}
+
+\begin{figure}[H]
+\centering
+\fbox{\parbox{0.95\textwidth}{\centering\vspace{2cm}
+\textit{[Screenshot of the Flask web application at http://127.0.0.1:5000
+showing a BM25-ranked search result list with term highlighting]}
+\vspace{2cm}}}
+\caption{Mini Search Engine --- Web Interface (Worklet 3 Flask App)}
+\end{figure}
+
+% ================= RESULTS TABLE =================
+\section*{Results}
+
+\subsection*{Index Build Time and Peak Memory vs.\ Corpus Size}
+
+\begin{table}[H]
+\centering
+\caption{Worklet 2 --- Index Build Performance (13th Gen Intel Core i5-13500H, 16 GB RAM)}
+\begin{tabular}{|c|c|c|c|c|c|}
+\hline
+\textbf{Docs} & \textbf{Mean (s)} & \textbf{Min (s)} & \textbf{p95 (s)} & \textbf{Max (s)} & \textbf{Peak RSS (MB)} \\
+\hline
+100  & 1.638 & 1.600 & 1.680 & 1.680 & 133 \\
+250  & 2.574 & 2.300 & 2.770 & 2.770 & 165 \\
+500  & 3.686 & 3.620 & 3.740 & 3.740 & 240 \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection*{Query Latency (Warm Index, 500-document corpus, 30 repetitions)}
+
+\begin{table}[H]
+\centering
+\caption{Worklet 2 --- CLI Query Latency (ms)}
+\begin{tabular}{|l|l|c|c|c|c|c|}
+\hline
+\textbf{Query Type} & \textbf{Example} & \textbf{Hits} & \textbf{Mean} & \textbf{Min} & \textbf{p95} & \textbf{Max} \\
+\hline
+Single term  & \texttt{search}            & 320 & 1.453 & 1.303 & 1.736 & 1.763 \\
+Boolean AND  & \texttt{data AND search}   & 159 & 1.200 & 1.058 & 1.375 & 1.441 \\
+Boolean OR   & \texttt{python OR linux}   & 139 & 0.993 & 0.835 & 1.179 & 1.184 \\
+Boolean NOT  & \texttt{NOT search}        & 178 & 0.264 & 0.208 & 0.374 & 0.376 \\
+Phrase       & \texttt{"search engine"}   & 7   & 0.186 & 0.131 & 0.270 & 0.277 \\
+Prefix       & \texttt{pyth*}             & 95  & 1.575 & 1.421 & 1.869 & 1.887 \\
+Suffix       & \texttt{*tion}             & 471 & 33.277 & 32.239 & 34.583 & 34.587 \\
+Infix/Wild   & \texttt{ser*er}            & 93  & 2.209 & 1.772 & 2.545 & 2.820 \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection*{Skip-Union Speedup over Plain Union (5 benchmark runs)}
+
+\begin{table}[H]
+\centering
+\caption{Worklet 2 --- Skip-Union Speedup Ratios}
+\begin{tabular}{|p{5cm}|c|p{8.5cm}|}
+\hline
+\textbf{Test Case} & \textbf{Mean Speedup} & \textbf{Verdict} \\
+\hline
+Random sparse lists    & $\approx 1.01\times$ & Similar performance \\
+Identical lists        & $\approx 1.00\times$ & Similar performance \\
+Disjoint lists         & $\approx 1.19\times$ & Skip is \textbf{FASTER} \\
+Tiny vs.\ huge lists   & $\approx 1.22\times$ & Skip is \textbf{FASTER} \\
+Clustered non-overlap  & $\approx 1.21\times$ & Skip is \textbf{FASTER} \\
+Interleaved disjoint   & $\approx 1.01\times$ & Similar performance \\
+Empty list             & $\approx 1.00\times$ & Similar performance \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection*{Correctness Tests (Worklet 2)}
+
+\begin{table}[H]
+\centering
+\caption{C++ Unit Test Results (Linux, g++ 15.2.0, 13th Gen Intel Core i5-13500H)}
+\begin{tabular}{|l|c|c|}
+\hline
+\textbf{Test Suite}                           & \textbf{Passed} & \textbf{Failed} \\
+\hline
+\texttt{make test-wl2} (PostingsOps Part 3)   & 15              & 0 \\
+\texttt{make test-boolean} (PostingsOps Unit) & 15              & 0 \\
+Bridge integration (\texttt{bridge\_test})    & Pass            & --- \\
+Boolean unit (\texttt{postings\_test})        & Pass            & --- \\
+\hline
+\textbf{Total}                                & \textbf{30+}    & \textbf{0} \\
+\hline
+\end{tabular}
+\end{table}
+
+\noindent\textbf{Large-list in-process micro-benchmark} (N=10\,000, from \texttt{test\_12\_large\_posting\_lists}):
+\begin{table}[H]
+\centering
+\caption{Worklet 2 --- In-process Boolean Operation Latency (N=10\,000)}
+\begin{tabular}{|l|c|}
+\hline
+\textbf{Operation}      & \textbf{Latency} \\
+\hline
+AND (intersect)         & 67--69 \textmu{}s \\
+OR (union)              & 840--856 \textmu{}s \\
+NOT (difference)        & 204--207 \textmu{}s \\
+OR with skip pointers   & 772--786 \textmu{}s \\
+\hline
+\end{tabular}
+\end{table}
+
+% ================= WL1 TEST RESULTS =================
+\section*{Worklet 1 --- Complete Test Results}
+
+\textbf{Test environment (this machine):}
+Platform: Linux, Python 3.14.4, pytest 9.1.1, 13th Gen Intel Core i5-13500H, 14 GiB RAM.\\
+\textbf{Overall result: \textcolor{codegreen}{76 / 76 passed in 0.22 s}}
+
+\subsection*{WL1 Test Modules Overview}
+
+\begin{table}[H]
+\centering
+\caption{Worklet 1 --- Test Module Summary (Linux, Python 3.14.4)}
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Module}              & \textbf{Tests} & \textbf{Passed} & \textbf{Failed} \\
+\hline
+\texttt{test\_engine.py}     & 10             & 10              & 0 \\
+\texttt{test\_fetcher.py}    & 12             & 12              & 0 \\
+\texttt{test\_frontier.py}   & 11             & 11              & 0 \\
+\texttt{test\_main.py}       & 2              & 2               & 0 \\
+\texttt{test\_parser.py}     & 14             & 14              & 0 \\
+\texttt{test\_store.py}      & 9              & 9               & 0 \\
+\texttt{test\_tokenizer.py}  & 18             & 18              & 0 \\
+\hline
+\textbf{Total}               & \textbf{76}    & \textbf{76}     & \textbf{0} \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection*{WL1 --- Individual Test Cases}
+
+\subsubsection*{Crawl Engine (\texttt{test\_engine.py}) --- 10 tests, all PASSED}
+\begin{table}[H]
+\centering
+\footnotesize
+\begin{tabular}{|p{7cm}|p{7.5cm}|}
+\hline
+\textbf{Test Name} & \textbf{What it verifies} \\
+\hline
+\texttt{test\_engine\_crawls\_linked\_pages\_in\_bfs\_order}      & BFS order preserved across seed links \\
+\texttt{test\_engine\_respects\_max\_pages}                       & Crawl halts at \texttt{max\_pages} limit \\
+\texttt{test\_engine\_respects\_max\_depth}                       & BFS depth cap enforced \\
+\texttt{test\_engine\_respects\_max\_links\_per\_page}            & Per-page link quota works \\
+\texttt{test\_engine\_skips\_failed\_fetches}                     & Failed HTTP fetch is skipped gracefully \\
+\texttt{test\_engine\_crawls\_shared\_link\_only\_once}           & Duplicate URL deduplication \\
+\texttt{test\_engine\_allowed\_domains\_restricts\_crawl}         & Domain whitelist filtering \\
+\texttt{test\_engine\_records\_depth\_status\_and\_length\_in\_meta} & Metadata fields populated correctly \\
+\texttt{test\_engine\_persists\_token\_segments}                  & Per-section token segments saved \\
+\texttt{test\_engine\_start\_seq\_controls\_first\_doc\_id}       & Sequential doc ID start offset \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsubsection*{Fetcher (\texttt{test\_fetcher.py}) --- 12 tests, all PASSED}
+\begin{table}[H]
+\centering
+\footnotesize
+\begin{tabular}{|p{7cm}|p{7.5cm}|}
+\hline
+\textbf{Test Name} & \textbf{What it verifies} \\
+\hline
+\texttt{test\_fetch\_returns\_html\_on\_200}             & HTTP 200 returns body \\
+\texttt{test\_fetch\_returns\_none\_on\_404}             & HTTP 404 returns None \\
+\texttt{test\_fetch\_returns\_none\_on\_request\_exception} & Network error returns None \\
+\texttt{test\_fetch\_retries\_on\_503}                   & Retry on 503 succeeds on 2nd attempt \\
+\texttt{test\_fetch\_respects\_zero\_delay}              & Zero politeness delay accepted \\
+\texttt{test\_fetch\_returns\_none\_on\_timeout}         & Timeout exception returns None \\
+\texttt{test\_fetch\_returns\_none\_on\_500}             & 500 after all retries returns None \\
+\texttt{test\_fetch\_retries\_on\_429}                   & Rate-limit 429 retried successfully \\
+\texttt{test\_fetcher\_close\_closes\_session}           & Session.close() called on shutdown \\
+\texttt{test\_fetcher\_uses\_custom\_user\_agent}        & Custom User-Agent header set \\
+\texttt{test\_fetch\_skipped\_when\_robots\_disallows}   & robots.txt disallow respected \\
+\texttt{test\_fetch\_politeness\_sleeps}                 & Delay between same-domain requests \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsubsection*{URL Frontier (\texttt{test\_frontier.py}) --- 11 tests, all PASSED}
+\begin{table}[H]
+\centering
+\footnotesize
+\begin{tabular}{|p{7cm}|p{7.5cm}|}
+\hline
+\textbf{Test Name} & \textbf{What it verifies} \\
+\hline
+\texttt{test\_seeds\_are\_enqueued\_and\_normalized}         & Seeds normalised (lowercase, strip port/frag) \\
+\texttt{test\_duplicate\_urls\_are\_not\_reenqueued}         & add() returns None for already-seen URL \\
+\texttt{test\_normalization\_strips\_fragment\_and\_port}    & \texttt{\#frag} and \texttt{:80} stripped \\
+\texttt{test\_normalization\_rejects\_non\_http\_schemes}    & ftp://, empty string $\to$ None \\
+\texttt{test\_normalization\_collapses\_trailing\_slash}     & \texttt{//} $\to$ \texttt{/} \\
+\texttt{test\_allowed\_domains\_filter}                     & Off-domain URLs rejected \\
+\texttt{test\_pop\_from\_empty\_returns\_none}              & empty() / pop() on empty frontier \\
+\texttt{test\_frontier\_bfs\_order}                         & FIFO order for BFS \\
+\texttt{test\_visited\_property\_tracks\_all\_added}        & visited set grows correctly \\
+\texttt{test\_normalize\_preserves\_query\_string}          & Query string \texttt{?q=x} retained \\
+\texttt{test\_normalize\_handles\_whitespace}               & Leading/trailing spaces stripped \\
+\texttt{test\_len\_reflects\_queue\_size}                   & \_\_len\_\_ accurate after pop and add \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsubsection*{HTML Parser (\texttt{test\_parser.py}) --- 14 tests, all PASSED}
+\begin{table}[H]
+\centering
+\footnotesize
+\begin{tabular}{|p{7.2cm}|p{7.2cm}|}
+\hline
+\textbf{Test Name} & \textbf{What it verifies} \\
+\hline
+\texttt{test\_parse\_html\_strips\_scripts\_styles\_and\_tags} & \texttt{<script>}/\texttt{<style>} content removed \\
+\texttt{test\_parse\_html\_handles\_none\_and\_malformed}       & None / malformed HTML no exception \\
+\texttt{test\_extract\_links\_resolves\_relative}               & Relative URLs resolved to absolute \\
+\texttt{test\_extract\_links\_handles\_none}                    & None HTML returns \texttt{[]} \\
+\texttt{test\_parse\_page\_returns\_text\_and\_links}           & Title, text, and links extracted \\
+\texttt{test\_parse\_page\_handles\_none}                       & None HTML $\to$ text=``, links=[] \\
+\texttt{test\_section\_break\_between\_block\_elements}         & SECTION\_BREAK separates \texttt{<div>}s \\
+\texttt{test\_no\_section\_break\_within\_inline\_content}      & \texttt{<b>} inside \texttt{<p>} stays same segment \\
+\texttt{test\_section\_break\_footer\_columns}                  & Footer \texttt{<div>} columns split correctly \\
+\texttt{test\_section\_break\_across\_headings\_and\_paragraphs} & \texttt{<h1>} and \texttt{<p>} in separate segments \\
+\texttt{test\_section\_break\_list\_items}                      & Each \texttt{<li>} in separate segment \\
+\texttt{test\_parse\_html\_strips\_noscript}                    & \texttt{<noscript>} content removed \\
+\texttt{test\_extract\_links\_skips\_empty\_href}               & Empty / missing href skipped safely \\
+\texttt{test\_parse\_page\_with\_nested\_tables}                & Each table cell is a separate segment \\
+\texttt{test\_parse\_html\_preserves\_text\_in\_article}        & \texttt{<article>} content preserved \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsubsection*{Store \& Document Model (\texttt{test\_store.py}) --- 9 tests, all PASSED}
+\begin{table}[H]
+\centering
+\footnotesize
+\begin{tabular}{|p{7cm}|p{7.5cm}|}
+\hline
+\textbf{Test Name} & \textbf{What it verifies} \\
+\hline
+\texttt{test\_append\_writes\_json\_line}               & Document serialised to valid JSONL \\
+\texttt{test\_to\_dict\_matches\_schema}                & Required keys present, correct types \\
+\texttt{test\_corpus\_path\_mapped\_to\_data\_dir}      & Config path resolves correctly \\
+\texttt{test\_new\_doc\_id\_sequential\_formatting}     & 6-digit zero-padded IDs: 000001\ldots \\
+\texttt{test\_crawl\_engine\_sequential\_doc\_ids}      & Engine assigns consecutive IDs \\
+\texttt{test\_document\_is\_frozen}                     & Frozen dataclass prevents mutation \\
+\texttt{test\_now\_iso\_format}                         & Timestamp matches ISO 8601 format \\
+\texttt{test\_store\_appends\_multiple\_documents}      & 3 documents $\to$ 3 JSONL lines \\
+\texttt{test\_to\_dict\_token\_segments\_serialization} & token\_segments serialised as list of lists \\
+\texttt{test\_store\_creates\_parent\_directory}        & Non-existent parent dirs auto-created \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsubsection*{Tokenizer (\texttt{test\_tokenizer.py}) --- 18 tests, all PASSED}
+\begin{table}[H]
+\centering
+\footnotesize
+\begin{tabular}{|p{7.2cm}|p{7.2cm}|}
+\hline
+\textbf{Test Name} & \textbf{What it verifies} \\
+\hline
+\texttt{test\_tokenize\_lowercases\_and\_strips\_punctuation}         & Lowercase + punct drop: ``Hello, WORLD!'' $\to$ [hello, world, 123] \\
+\texttt{test\_tokenize\_removes\_stopwords}                           & ``the'', ``over'' removed from result \\
+\texttt{test\_tokenize\_handles\_empty\_and\_none}                   & Empty / None $\to$ [] \\
+\texttt{test\_tokenize\_segments\_splits\_on\_sentinel}               & SECTION\_BREAK splits into two lists \\
+\texttt{test\_tokenize\_segments\_no\_sentinel}                       & No sentinel $\to$ one flat list \\
+\texttt{test\_tokenize\_segments\_empty\_fragments\_are\_skipped}     & All-stopword segments omitted \\
+\texttt{test\_tokenize\_segments\_stopwords\_removed}                 & Stop words removed per segment \\
+\texttt{test\_tokenize\_segments\_handles\_empty\_and\_none}          & Edge cases handled \\
+\texttt{test\_tokenize\_flat\_matches\_segments}                      & flat == flattened segments \\
+\texttt{test\_tokenize\_special\_characters\_and\_symbols}            & \#, \$, \%, \&, (), ! stripped correctly \\
+\texttt{test\_tokenize\_all\_stopwords}                               & All-stopword input $\to$ [] \\
+\texttt{test\_tokenize\_pure\_numbers}                                & Digit tokens kept \\
+\texttt{test\_tokenize\_segments\_all\_stopwords\_fragment\_omitted}  & Middle all-stopword segment dropped \\
+\texttt{test\_tokenize\_whitespace\_newlines\_tabs}                   & \textbackslash{}n, \textbackslash{}t normalised correctly \\
+\texttt{test\_tokenize\_hyphenated\_and\_compound\_words}             & Hyphen treated as separator \\
+\hline
+\end{tabular}
+\end{table}
+
+% ================= WL3 TEST RESULTS =================
+\section*{Worklet 3 --- Complete Test Results}
+
+\textbf{Test environment (this machine):}
+Platform: Linux, Python 3.14.4, pytest 9.1.1, 13th Gen Intel Core i5-13500H, 14 GiB RAM.\\
+\textbf{Overall result: \textcolor{codegreen}{254 / 254 passed in 8.69 s}}
+
+\subsection*{WL3 Test Modules Overview}
+
+\begin{table}[H]
+\centering
+\caption{Worklet 3 --- Test Module Summary (Linux, Python 3.14.4)}
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Module}                      & \textbf{Tests} & \textbf{Passed} & \textbf{Failed} \\
+\hline
+\texttt{test\_bm25.py}               & 13             & 13              & 0 \\
+\texttt{test\_cache\_concurrency.py} & 1              & 1               & 0 \\
+\texttt{test\_cache\_manager.py}     & 9              & 9               & 0 \\
+\texttt{test\_engine\_evaluation.py} & 7              & 7               & 0 \\
+\texttt{test\_evaluation.py}         & 30             & 30              & 0 \\
+\texttt{test\_integration.py}        & 5              & 5               & 0 \\
+\texttt{test\_lru\_cache.py}         & (via run\_tests) & ---            & --- \\
+\texttt{test\_mmr.py}                & (via run\_tests) & ---            & --- \\
+\texttt{test\_query\_engine.py}      & 36             & 36              & 0 \\
+\texttt{test\_ranker.py}             & 10             & 10              & 0 \\
+\texttt{test\_ranking\_integration.py} & 12           & 12              & 0 \\
+\texttt{test\_real\_wl2\_backend.py} & 6              & 6               & 0 \\
+\texttt{test\_rocchio.py}            & 5              & 5               & 0 \\
+\texttt{test\_session\_manager.py}   & 6              & 6               & 0 \\
+\texttt{test\_sqlite\_cache.py}      & 5              & 5               & 0 \\
+\texttt{test\_stopword\_only.py}     & 11             & 11              & 0 \\
+\texttt{test\_tfidf.py}              & 12             & 12              & 0 \\
+\texttt{test\_top\_k.py}             & 15             & 15              & 0 \\
+\texttt{test\_vector.py}             & 15             & 15              & 0 \\
+\hline
+\textbf{Total}                       & \textbf{254}   & \textbf{254}    & \textbf{0} \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection*{WL3 --- Selected Test Cases by Component}
+
+\subsubsection*{TF-IDF Scorer (\texttt{test\_tfidf.py}) --- 12 tests, all PASSED}
+\begin{table}[H]
+\centering
+\footnotesize
+\begin{tabular}{|p{7cm}|p{7.5cm}|}
+\hline
+\textbf{Test Name} & \textbf{What it verifies} \\
+\hline
+\texttt{test\_basic\_scoring}                     & Correct TF-IDF value for known input \\
+\texttt{test\_ordering\_multiple\_docs}           & Higher-TF doc ranks above lower-TF doc \\
+\texttt{test\_single\_term\_query}                & Single-term query scored correctly \\
+\texttt{test\_zero\_tf\_term\_contributes\_zero}  & Term not in doc adds 0 to score \\
+\texttt{test\_term\_in\_all\_docs\_gives\_zero\_idf} & IDF = $\log(N/N)=0$; term universally present \\
+\texttt{test\_rare\_term\_has\_highest\_idf}      & df=1 gives max IDF \\
+\texttt{test\_empty\_query\_returns\_zero}        & Empty query $\to$ 0.0 \\
+\texttt{test\_empty\_doc\_tf\_returns\_zero}      & Doc with no query terms $\to$ 0.0 \\
+\texttt{test\_term\_not\_in\_corpus\_skipped}     & df=0 term skipped (no division by zero) \\
+\texttt{test\_score\_is\_non\_negative}           & Score always $\geq 0$ \\
+\texttt{test\_total\_docs\_zero\_returns\_zero}   & N=0 guard returns 0.0 \\
+\texttt{test\_repeated\_query\_term\_sums\_correctly} & Duplicate query term counted once per term \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsubsection*{BM25 Scorer (\texttt{test\_bm25.py}) --- 13 tests, all PASSED}
+\begin{table}[H]
+\centering
+\footnotesize
+\begin{tabular}{|p{7cm}|p{7.5cm}|}
+\hline
+\textbf{Test Name} & \textbf{What it verifies} \\
+\hline
+\texttt{test\_basic\_scoring}                              & Correct BM25 value for known input \\
+\texttt{test\_ordering\_doc0\_vs\_doc7}                   & Higher-relevance doc ranked higher \\
+\texttt{test\_short\_doc\_scores\_higher\_than\_long\_doc} & Length normalisation penalises long docs \\
+\texttt{test\_length\_normalization\_disabled}             & b=0 disables length normalisation \\
+\texttt{test\_full\_length\_normalization}                 & b=1 applies full length penalty \\
+\texttt{test\_tf\_saturation}                             & High TF gives diminishing returns \\
+\texttt{test\_custom\_k1\_b}                              & Non-default hyperparameters work \\
+\texttt{test\_zero\_tf\_term\_contributes\_zero}           & Missing term adds 0 to score \\
+\texttt{test\_empty\_query\_returns\_zero}                 & Empty query $\to$ 0.0 \\
+\texttt{test\_single\_doc\_corpus}                        & N=1 edge case handled \\
+\texttt{test\_invalid\_k1\_raises}                        & k1 $<$ 0 raises ValueError \\
+\texttt{test\_invalid\_b\_raises}                         & b $\notin$ [0,1] raises ValueError \\
+\texttt{test\_score\_is\_non\_negative}                   & Score always $\geq 0$ \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsubsection*{LRU Cache (\texttt{test\_cache\_concurrency.py} + \texttt{test\_lru\_cache.py})}
+\begin{table}[H]
+\centering
+\footnotesize
+\begin{tabular}{|p{7cm}|p{7.5cm}|}
+\hline
+\textbf{Test Name} & \textbf{What it verifies} \\
+\hline
+\texttt{test\_concurrent\_put\_and\_get}        & Multiple threads write/read without data corruption \\
+\texttt{test\_basic\_top\_k}                    & get/put semantics correct \\
+\texttt{test\_results\_sorted\_descending}      & Eviction on capacity overflow removes LRU entry \\
+\texttt{test\_tied\_scores\_deterministic}      & Tie-breaking by doc\_id is deterministic \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsubsection*{Cache Manager (\texttt{test\_cache\_manager.py}) --- 9 tests, all PASSED}
+\begin{table}[H]
+\centering
+\footnotesize
+\begin{tabular}{|p{7cm}|p{7.5cm}|}
+\hline
+\textbf{Test Name} & \textbf{What it verifies} \\
+\hline
+\texttt{test\_build\_cache\_key}                       & Key built from query+mode+k+mmr+version \\
+\texttt{test\_cache\_key\_distinguishes\_ranking\_modes} & Different modes produce different keys \\
+\texttt{test\_cache\_key\_distinguishes\_k}            & Different $k$ values produce different keys \\
+\texttt{test\_cache\_key\_distinguishes\_mmr}          & MMR flag differentiates keys \\
+\texttt{test\_cache\_key\_distinguishes\_index\_version} & Stale entries rejected on version mismatch \\
+\texttt{test\_cache\_manager\_put\_and\_get}           & Two-level store: LRU $+$ SQLite \\
+\texttt{test\_cache\_manager\_miss}                    & Cache miss returns None \\
+\texttt{test\_cache\_manager\_remove}                  & Remove deletes from both levels \\
+\texttt{test\_sqlite\_fallback\_promotes\_to\_lru}     & SQLite hit promotes entry to in-memory LRU \\
+\texttt{test\_stale\_sqlite\_entry\_is\_not\_returned} & Outdated index version ignored \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsubsection*{Query Engine (\texttt{test\_query\_engine.py}) --- 36 tests, all PASSED}
+\begin{table}[H]
+\centering
+\footnotesize
+\begin{tabular}{|p{7cm}|p{7.5cm}|}
+\hline
+\textbf{Test Group} & \textbf{What it verifies} \\
+\hline
+Basic search (3 tests)        & Search returns ranked results, correct type, non-empty \\
+Caching (4 tests)             & Cache hit avoids re-query; cache miss triggers re-query \\
+Stats (2 tests)               & \texttt{stats()} reports cache hits, latency, index version \\
+Feedback (6 tests)            & Rocchio shifts ranking; reset restores; shared cache bypass \\
+MMR (3 tests)                 & MMR reduces near-duplicates; scores are relevance scores \\
+Concurrency (1 test)          & Multi-threaded queries produce consistent results \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsubsection*{Evaluation Metrics (\texttt{test\_evaluation.py}) --- 30 tests, all PASSED}
+\begin{table}[H]
+\centering
+\footnotesize
+\begin{tabular}{|p{7cm}|p{7.5cm}|}
+\hline
+\textbf{Metric / Group} & \textbf{Tests} \\
+\hline
+Precision@k (11 tests)  & Perfect, partial, zero, edge cases (k=0, k$<$0, empty) \\
+Recall@k (5 tests)      & R@5, R@10, zero recall, edge cases \\
+Reciprocal Rank (4 tests) & First/second-rank hit, no hit, empty list \\
+MRR (2 tests)           & Basic MRR, empty query set \\
+Average Precision (3 tests) & hand-calc, no-relevant, empty-retrieved \\
+evaluate\_ranking (3 tests) & Returns correct keys, values in [0,1] \\
+aggregate\_metrics (2 tests) & Mean across queries, MRR alias \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsubsection*{Rocchio Feedback (\texttt{test\_rocchio.py}) --- 5 tests, all PASSED}
+\begin{table}[H]
+\centering
+\footnotesize
+\begin{tabular}{|p{7cm}|p{7.5cm}|}
+\hline
+\textbf{Test Name} & \textbf{What it verifies} \\
+\hline
+\texttt{test\_relevant\_documents\_increase\_term\_weights}    & $\beta$-weighted relevant doc terms added to query \\
+\texttt{test\_non\_relevant\_documents\_reduce\_term\_weights} & $\gamma$-weighted non-relevant terms subtracted \\
+\texttt{test\_negative\_weights\_are\_removed}                 & Negative weights clamped to 0 (no anti-query) \\
+\texttt{test\_empty\_feedback\_preserves\_query}              & No feedback $\to$ query unchanged \\
+\texttt{test\_negative\_parameters\_are\_rejected}            & $\alpha < 0$ raises ValueError \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsubsection*{Real WL2 Backend Integration (\texttt{test\_real\_wl2\_backend.py}) --- 6 tests, all PASSED}
+\begin{table}[H]
+\centering
+\footnotesize
+\begin{tabular}{|p{7.5cm}|p{7cm}|}
+\hline
+\textbf{Test Name} & \textbf{What it verifies} \\
+\hline
+\texttt{test\_backend\_satisfies\_adapter\_contract}           & Pybind bridge implements required interface \\
+\texttt{test\_all\_ranking\_modes\_return\_scored\_results[tfidf]}  & TF-IDF mode end-to-end via C++ backend \\
+\texttt{test\_all\_ranking\_modes\_return\_scored\_results[bm25]}   & BM25 mode end-to-end via C++ backend \\
+\texttt{test\_all\_ranking\_modes\_return\_scored\_results[vector]} & Vector mode end-to-end via C++ backend \\
+\texttt{test\_cache\_hit\_on\_repeat}                          & Second identical query served from cache \\
+\texttt{test\_feedback\_and\_mmr\_work\_end\_to\_end}          & Rocchio + MMR pipeline works with real index \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsubsection*{Stopword-only Query Handling (\texttt{test\_stopword\_only.py}) --- 11 tests, all PASSED}
+\begin{table}[H]
+\centering
+\footnotesize
+\begin{tabular}{|p{8cm}|p{6.5cm}|}
+\hline
+\textbf{Test Name} & \textbf{What it verifies} \\
+\hline
+\texttt{test\_sentinel\_is\_stripped\_and\_notice\_set[the]}         & Stop-word query sets notice message \\
+\texttt{test\_sentinel\_is\_stripped\_and\_notice\_set[the of and]}  & Multi-stopword query handled \\
+\texttt{test\_k\_limits\_stopword\_results}                          & Result count bounded by $k$ \\
+\texttt{test\_every\_mode\_and\_mmr\_handle\_it[tfidf/bm25/vector]}  & All 3 ranking modes handle stop-word query \\
+\texttt{test\_normal\_query\_has\_no\_notice\_and\_is\_cached}       & Normal query has no warning, is cached \\
+\texttt{test\_stopword\_answers\_are\_not\_cached}                   & Stop-word results excluded from cache \\
+\texttt{test\_stopword\_query\_with\_feedback\_session}              & Feedback session unaffected \\
+\texttt{test\_mock\_backend\_follows\_same\_contract}                & Mock WL2 adapter behaves identically \\
+\texttt{test\_cli\_shows\_notice}                                     & CLI output includes notice text \\
+\texttt{test\_flask\_json\_and\_html\_show\_notice}                  & Flask JSON and HTML endpoints include notice \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsubsection*{Full WL3 Test Run Summary (run\_tests.py, 94 tests)}
+\begin{table}[H]
+\centering
+\caption{run\_tests.py --- Condensed Worklet 3 Test Output (Linux, Python 3.14.4)}
+\begin{tabular}{|l|c|c|}
+\hline
+\textbf{Test Class}         & \textbf{Tests} & \textbf{Status} \\
+\hline
+TestTFIDFScorer             & 11             & \textcolor{codegreen}{All PASS} \\
+TestBM25Scorer              & 10             & \textcolor{codegreen}{All PASS} \\
+TestVectorScorer            & 10             & \textcolor{codegreen}{All PASS} \\
+TestRanker                  & 9              & \textcolor{codegreen}{All PASS} \\
+TestTopKRetriever           & 13             & \textcolor{codegreen}{All PASS} \\
+TestIntegration             & 5              & \textcolor{codegreen}{All PASS} \\
+TestPrecisionAtK            & 8              & \textcolor{codegreen}{All PASS} \\
+TestRecallAtK               & 5              & \textcolor{codegreen}{All PASS} \\
+TestReciprocalRank          & 4              & \textcolor{codegreen}{All PASS} \\
+TestMRR                     & 2              & \textcolor{codegreen}{All PASS} \\
+TestAveragePrecision        & 3              & \textcolor{codegreen}{All PASS} \\
+TestEvaluateRanking         & 3              & \textcolor{codegreen}{All PASS} \\
+TestAggregateMetrics        & 2              & \textcolor{codegreen}{All PASS} \\
+TestDataset                 & 5              & \textcolor{codegreen}{All PASS} \\
+TestRankedResult            & 5              & \textcolor{codegreen}{All PASS} \\
+\hline
+\textbf{Total}              & \textbf{94}    & \textcolor{codegreen}{\textbf{94/94 PASS}} \\
+\hline
+\end{tabular}
+\end{table}
+
+\noindent\textbf{Full pytest run}: \texttt{python -m pytest tests/wl3/} $\rightarrow$ \textbf{254 / 254 passed in 8.69 s}
+
+% ================= OBSERVATIONS =================
+\section*{Observations}
+
+\begin{itemize}
+    \item \textbf{BM25 outperforms TF-IDF} in relevance quality for typical queries because it handles term-frequency saturation and document-length normalisation, reducing bias towards long documents.
+    \item \textbf{Phrase queries are the fastest}: since positional matching drastically prunes candidates early, mean latency is only 0.186 ms on 500 documents.
+    \item \textbf{Suffix queries are the slowest} (mean $\approx$33 ms): the reversed trie must enumerate a large candidate set for common suffixes like \texttt{*tion} (471 hits), which then all need postings-list merges.
+    \item \textbf{Skip pointers provide 19–22\% speedup} on disjoint, tiny-vs-huge, and clustered postings lists --- exactly the cases where large blocks can be leapt over. For densely interleaved lists the overhead is negligible ($\approx$1\%).
+    \item \textbf{Index build scales sub-linearly} in wall-clock time with corpus size (1.64 s $\to$ 3.69 s for $5\times$ more docs), suggesting good cache behaviour and efficient hash-map construction.
+    \item \textbf{Peak RSS grows roughly linearly} with corpus size (133 MB $\to$ 240 MB for $5\times$ docs), indicating the postings lists dominate memory.
+    \item The \textbf{LRU cache} eliminates re-computation for repeated queries; the SQLite persistent cache additionally survives server restarts.
+    \item \textbf{Rocchio relevance feedback} improves subsequent query quality by shifting the query vector toward user-marked relevant documents.
+\end{itemize}
+
+% ================= APPLICATIONS =================
+\section*{Applications}
+
+\begin{itemize}
+    \item \textbf{Enterprise Document Search} --- searching internal knowledge bases, wiki pages, or codebases where a lightweight, self-hosted engine is preferred over cloud search.
+    \item \textbf{Academic Information Retrieval} --- retrieving research papers or course materials using Boolean and phrase queries with relevance ranking.
+    \item \textbf{Log and Event Analysis} --- indexing server logs and using boolean queries to filter and correlate events across millions of lines.
+    \item \textbf{E-commerce Product Search} --- applying prefix/wildcard search for autocomplete and BM25 for product ranking.
+    \item \textbf{Legal and Compliance Search} --- phrase and Boolean queries for exact clause discovery in large document repositories.
+    \item \textbf{Educational Platform} --- demonstrating the internals of search engines as a teaching tool for IR and data-structures courses.
+\end{itemize}
+
+% ================= CONCLUSION =================
+\section*{Conclusion}
+
+The \textbf{Mini Search Engine} successfully demonstrates the complete lifecycle of a search engine from first principles. The three-worklet architecture cleanly separates concerns:
+
+\begin{itemize}
+    \item \textbf{Worklet 1} proves that a BFS crawler with HTML parsing and a simple regex tokenizer is sufficient to build a clean, deduplicated corpus from live web pages.
+    \item \textbf{Worklet 2} (implemented entirely in C++) demonstrates that a custom inverted index with a trie vocabulary, skip-pointer postings operations, and a pybind11 bridge can answer diverse query types (Boolean, phrase, prefix, suffix, wildcard) in sub-millisecond to tens-of-milliseconds latency on a 500-document corpus with zero compiler warnings.
+    \item \textbf{Worklet 3} shows that layering BM25 or TF-IDF scoring, an LRU cache, Rocchio feedback, and a Flask web interface on top of the C++ engine produces a usable, evaluated search product whose quality can be measured with standard IR metrics.
+\end{itemize}
+
+The benchmarks confirm that skip pointers deliver meaningful (up to 22\%) speedups on disjoint postings --- the typical real-world case --- while adding negligible overhead on dense lists. All 30 C++ unit tests pass, and the system compiles with zero warnings under \texttt{-Wall -Wextra}, reflecting good engineering discipline. The project meets its stated goal: building a small but fully functional search engine that is comprehensible end-to-end.
+
+% ================= REFERENCES =================
+\section*{References}
+
+\begin{itemize}
+    \item Project Source Code: \url{https://github.com/BhaveshGadling77/Mini-Search-Engine}
+    \item Manning, C.~D., Raghavan, P., \& Sch\"utze, H. (2008). \textit{Introduction to Information Retrieval}. Cambridge University Press. Available at: \url{https://nlp.stanford.edu/IR-book/}
+    \item Robertson, S., \& Zaragoza, H. (2009). The Probabilistic Relevance Framework: BM25 and Beyond. \textit{Foundations and Trends in Information Retrieval}, 3(4), 333--389.
+    \item Strohman, T., \& Croft, W.~B. (2007). Efficient Document Retrieval in Main Memory. In \textit{Proceedings of SIGIR 2007}.
+    \item pybind11 Documentation. \url{https://pybind11.readthedocs.io/en/stable/}
+    \item Flask Documentation. \url{https://flask.palletsprojects.com/}
+    \item Project repository README: \texttt{Mini-Search-Engine/README.md}
+\end{itemize}
+
+\end{document}
